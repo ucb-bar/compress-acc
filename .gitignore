@@ -1,0 +1,10 @@
+target
+**/*.riscv
+**/*.riscv.dump
+**/*.o
+**/*.fse
+software/zstd
+**/*.x86
+**/*.log
+**/logs
+**/*.csv

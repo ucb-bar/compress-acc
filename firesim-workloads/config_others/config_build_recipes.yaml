@@ -1,0 +1,78 @@
+# Build-time build recipe configuration for the FireSim Simulation Manager
+# See https://docs.fires.im/en/stable/Advanced-Usage/Manager/Manager-Configuration-Files.html for documentation of all of these params.
+
+# this file contains sections that describe hardware designs that /can/ be built.
+# edit config_build.yaml to actually "turn on" a config to be built when you run
+# buildafi
+
+###########
+# Schema:
+###########
+# <NAME>:
+#    DESIGN: <>
+#    TARGET_CONFIG: <>
+#    PLATFORM_CONFIG: Config
+#    deploy_triplet: null
+#    post_build_hook: null
+#    metasim_customruntimeconfig: "path to custom runtime config for metasims"
+#    bit_builder_recipe:
+#    # OPTIONAL: overrides for bit builder recipe
+#    # Arg structure should be identical to the args given
+#    # in the base_recipe.
+#    #bit_builder_arg_overrides:
+#    #  <ARG>: <OVERRIDE>
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_rocc:
+    DESIGN: FireSim
+    TARGET_CONFIG: DDR3FRFCFS_WithDefaultFireSimBridges_WithFireSimCompressAccConfigTweaks_chipyard.SnappyBothConfig16MBL2And8MemChanRoCC
+    PLATFORM_CONFIG: F7MHz_BaseF1Config
+    deploy_triplet: null
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_chiplet:
+    DESIGN: FireSim
+    TARGET_CONFIG: DDR3FRFCFS_WithDefaultFireSimBridges_WithFireSimCompressAccConfigTweaks_chipyard.SnappyBothConfig16MBL2And8MemChanChiplet
+    PLATFORM_CONFIG: F7MHz_BaseF1Config
+    deploy_triplet: null
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_pcie_c:
+    DESIGN: FireSim
+    TARGET_CONFIG: DDR3FRFCFS_WithDefaultFireSimBridges_WithFireSimCompressAccConfigTweaks_chipyard.SnappyBothConfig16MBL2And8MemChanPCIeLocalCache
+    PLATFORM_CONFIG: Area_F7MHz_BaseF1Config
+    deploy_triplet: null
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_decompressor_pcie_nc:
+    DESIGN: FireSim
+    TARGET_CONFIG: DDR3FRFCFS_WithDefaultFireSimBridges_WithFireSimCompressAccConfigTweaks_chipyard.SnappyDecompressorConfig16MBL2And8MemChanPCIeNoCache
+    PLATFORM_CONFIG: F7MHz_BaseF1Config
+    deploy_triplet: null
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+firesim_rocket_hyperscale_singlecore_no_nic_8Ml2_nollc_ddr3_merged_compressor_latinject2:
+    DESIGN: FireSim
+    TARGET_CONFIG: DDR3FRFCFS_WithDefaultFireSimBridges_WithFireSimCompressAccConfigTweaks_chipyard.MergedCompressorLatencyInjectionHyperscaleRocketConfig8MBL2
+    PLATFORM_CONFIG: F7MHz_BaseF1Config
+    deploy_triplet: null
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_zstd_decompressor_spec16:
+    DESIGN: FireSim
+    TARGET_CONFIG: DDR3FRFCFS_WithDefaultFireSimBridges_WithFireSimCompressAccConfigTweaks_chipyard.ZstdDecompressorConfig16MBL2And8MemChanSpec16
+    PLATFORM_CONFIG: Area_F7MHz_BaseF1Config
+    deploy_triplet: null
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+

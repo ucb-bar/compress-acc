@@ -1,0 +1,46 @@
+# Build-time build design / AGFI configuration for the FireSim Simulation Manager
+# See https://docs.fires.im/en/stable/Advanced-Usage/Manager/Manager-Configuration-Files.html for documentation of all of these params.
+
+# this refers to build farms defined in config_build_farm.yaml
+build_farm:
+  base_recipe: build-farm-recipes/aws_ec2.yaml
+  recipe_arg_overrides:
+    # instance type to use per build
+    instance_type: z1d.6xlarge
+    # instance market to use per build (ondemand, spot)
+    build_instance_market: ondemand
+    # if using spot instances, determine the interrupt behavior (terminate, stop, hibernate)
+    spot_interruption_behavior: terminate
+    # if using spot instances, determine the max price
+    spot_max_price: ondemand
+    # default location of build directory on build host
+    default_build_dir: /home/centos/firesim-build
+
+builds_to_run:
+    # this section references builds defined in config_build_recipes.yaml
+    # if you add a build here, it will be built when you run buildafi
+
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_rocc
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_chiplet
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_pcie_c
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_decompressor_pcie_nc
+    - firesim_rocket_hyperscale_singlecore_no_nic_8Ml2_nollc_ddr3_merged_compressor_latinject2
+
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_zstd_decompressor_spec16
+    - firesim_rocket_hyperscale_singlecore_no_nic_8Ml2_nollc_ddr3_merged_compressor_latinject2
+
+agfis_to_share:
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_rocc
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_chiplet
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_pcie_c
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_decompressor_pcie_nc
+    - firesim_rocket_hyperscale_singlecore_no_nic_8Ml2_nollc_ddr3_merged_compressor_latinject2
+
+    - firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_zstd_decompressor_spec16
+    - firesim_rocket_hyperscale_singlecore_no_nic_8Ml2_nollc_ddr3_merged_compressor_latinject2
+
+share_with_accounts:
+    # To share with a specific user:
+    somebodysname: 123456789012
+    # To share publicly:
+    #public: public

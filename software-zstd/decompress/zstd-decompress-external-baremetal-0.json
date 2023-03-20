@@ -1,0 +1,70 @@
+{
+    "name" : "zstd-decompress-external-baremetal",
+    "jobs" : [
+      {
+        "name" : "0",
+        "bin" :  "0.riscv"
+      },
+      {
+        "name" : "1",
+        "bin" :  "1.riscv"
+      },
+      {
+        "name" : "2",
+        "bin" :  "2.riscv"
+      },
+      {
+        "name" : "3",
+        "bin" :  "3.riscv"
+      },
+      {
+        "name" : "4",
+        "bin" :  "4.riscv"
+      },
+      {
+        "name" : "5",
+        "bin" :  "5.riscv"
+      },
+      {
+        "name" : "6",
+        "bin" :  "6.riscv"
+      },
+      {
+        "name" : "7",
+        "bin" :  "7.riscv"
+      },
+      {
+        "name" : "8",
+        "bin" :  "8.riscv"
+      },
+      {
+        "name" : "9",
+        "bin" :  "9.riscv"
+      },
+      {
+        "name" : "10",
+        "bin" :  "10.riscv"
+      },
+      {
+        "name" : "11",
+        "bin" :  "11.riscv"
+      },
+      {
+        "name" : "12",
+        "bin" :  "12.riscv"
+      },
+      {
+        "name" : "13",
+        "bin" :  "13.riscv"
+      },
+      {
+        "name" : "14",
+        "bin" :  "14.riscv"
+      },
+      {
+        "name" : "15",
+        "bin" :  "15.riscv"
+      }
+    ]
+  }
+  
