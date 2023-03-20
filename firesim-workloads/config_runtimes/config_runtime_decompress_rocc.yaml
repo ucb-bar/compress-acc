@@ -9,7 +9,7 @@ run_farm:
     # enable expanding run farm by run_farm_hosts given
     always_expand_run_farm: true
     # minutes to retry attempting to request instances
-    launch_instances_timeout_minutes: 60
+    launch_instances_timeout_minutes: 720
     # run farm host market to use (ondemand, spot)
     run_instance_market: ondemand
     # if using spot instances, determine the interrupt behavior (terminate, stop, hibernate)
