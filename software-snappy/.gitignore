@@ -1,0 +1,5 @@
+*.o
+*.riscv
+snappy-compress-external-baremetal
+snappy-complete-external-baremetal
+snappy-decompress-external-baremetal
