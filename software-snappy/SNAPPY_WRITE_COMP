@@ -1,0 +1,33 @@
+diff --git a/snappy_test_tool.cc b/snappy_test_tool.cc
+index a7c779b..31c7c82 100644
+--- a/snappy_test_tool.cc
++++ b/snappy_test_tool.cc
+@@ -49,15 +49,15 @@ SNAPPY_FLAG(int32_t, end_len, -1,
+ SNAPPY_FLAG(int32_t, bytes, 10485760,
+             "How many bytes to compress/uncompress per file for timing");
+ 
+-SNAPPY_FLAG(bool, zlib, true,
++SNAPPY_FLAG(bool, zlib, false,
+             "Run zlib compression (http://www.zlib.net)");
+-SNAPPY_FLAG(bool, lzo, true,
++SNAPPY_FLAG(bool, lzo, false,
+             "Run LZO compression (http://www.oberhumer.com/opensource/lzo/)");
+-SNAPPY_FLAG(bool, lz4, true,
++SNAPPY_FLAG(bool, lz4, false,
+             "Run LZ4 compression (https://github.com/lz4/lz4)");
+ SNAPPY_FLAG(bool, snappy, true, "Run snappy compression");
+ 
+-SNAPPY_FLAG(bool, write_compressed, false,
++SNAPPY_FLAG(bool, write_compressed, true,
+             "Write compressed versions of each file to <file>.comp");
+ SNAPPY_FLAG(bool, write_uncompressed, false,
+             "Write uncompressed versions of each file to <file>.uncomp");
+@@ -409,7 +409,7 @@ void UncompressFile(const char* fname) {
+ 
+   std::string uncompressed;
+   uncompressed.resize(uncompLength);
+-  CHECK(snappy::Uncompress(fullinput.data(), fullinput.size(), &uncompressed));
++  snappy::Uncompress(fullinput.data(), fullinput.size(), &uncompressed);
+ 
+   CHECK_OK(file::SetContents(std::string(fname).append(".uncomp"), uncompressed,
+                              file::Defaults()));

@@ -1,0 +1,31 @@
+# Hardware config database for FireSim Simulation Manager
+# See https://docs.fires.im/en/stable/Advanced-Usage/Manager/Manager-Configuration-Files.html for documentation of all of these params.
+
+# Hardware configs represent a combination of an agfi, a deploytriplet override
+# (if needed), and a custom runtime config (if needed)
+
+# The AGFIs provided below are public and available to all users.
+# Only AGFIs for the latest release of FireSim are guaranteed to be available.
+# If you are using an older version of FireSim, you will need to generate your
+# own images.
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_rocc:
+    agfi: agfi-0408861ac40c4d64e
+    deploy_triplet_override: null
+    custom_runtime_config: null
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_chiplet:
+    agfi: agfi-09f2f3f941e55f4ed
+    deploy_triplet_override: null
+    custom_runtime_config: null
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_both_pcie_c:
+    agfi: agfi-0f4c4636b98a1dc8a
+    deploy_triplet_override: null
+    custom_runtime_config: null
+
+firesim_singlecore_no_nic_16Ml2_8memchan_ddr3_decompressor_pcie_nc:
+    agfi: agfi-01c33dda43b1da073
+    deploy_triplet_override: null
+    custom_runtime_config: null
+

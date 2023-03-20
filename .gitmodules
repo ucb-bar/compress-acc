@@ -1,0 +1,12 @@
+[submodule "software/zstd"]
+	path = software/zstd
+	url = https://github.com/facebook/zstd.git
+[submodule "software-snappy/snappy"]
+	path = software-snappy/snappy
+	url = https://github.com/google/snappy.git
+[submodule "lzbench"]
+	path = lzbench
+	url = https://github.com/inikep/lzbench.git
+[submodule "software/benchmarks/HyperCompressBench"]
+	path = software/benchmarks/HyperCompressBench
+	url = https://github.com/google/HyperCompressBench

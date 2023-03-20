@@ -1,0 +1,21 @@
+diff --git a/_lzbench/lzbench.cpp b/_lzbench/lzbench.cpp
+index 470bdf1..1507da1 100644
+--- a/_lzbench/lzbench.cpp
++++ b/_lzbench/lzbench.cpp
+@@ -877,14 +877,14 @@ int main( int argc, char** argv)
+             params->cspeed = number;
+             break;
+         case 't':
+-            params->cmintime = 1000*number;
++            params->cmintime = 100*number;
+             params->cloop_time = (params->cmintime)?DEFAULT_LOOP_TIME:0;
+             if (*numPtr == ',')
+             {
+                 numPtr++;
+                 number = 0;
+                 while ((*numPtr >='0') && (*numPtr <='9')) { number *= 10;  number += *numPtr - '0'; numPtr++; }
+-                params->dmintime = 1000*number;
++                params->dmintime = 100*number;
+                 params->dloop_time = (params->dmintime)?DEFAULT_LOOP_TIME:0;
+             }
+             break;
