@@ -566,3 +566,4 @@ class ZstdDTBuilder(l2bw: Int)(implicit p: Parameters) extends Module{
                 input_src_info_nmb_enq_count===input_stream_enq_count
 
     io.trigger_ready := state===0.U && !(block_count(0)===block_count_DTReader && io.table_in_use)
+}
