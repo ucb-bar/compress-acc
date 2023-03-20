@@ -14,7 +14,9 @@ OLD_RESULTS_DIR="OLD_RESULTS-$(date +%Y-%m-%d__%H-%M-%S)"
 
 # move any old results:
 mkdir -p $OLD_RESULTS_DIR
-mv results-workload/* $OLD_RESULTS_DIR/
+mv results-workload $OLD_RESULTS_DIR/
+mkdir -p results-workload
+touch results-workload/.PLACEHOLDER
 
 
 COMMON_FSIM_ARGS="-b $CONFIG_OTHER_RELPATH/config_build.yaml -r $CONFIG_OTHER_RELPATH/config_build_recipes.yaml -a $CONFIG_OTHER_RELPATH/config_hwdb.yaml"
