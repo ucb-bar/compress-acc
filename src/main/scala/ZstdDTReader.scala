@@ -144,7 +144,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
 
     // Queues and buffers
     val request_info_queue_flush = false.B
-    val request_info_queue = Module(new Queue(new DTReaderRequestInfo, 6, false, false, request_info_queue_flush))
+    val request_info_queue = Module(new Queue(new DTReaderRequestInfo, 6, false, false, request_info_queue_flush || reset))
     val request_info_enq_count = RegInit(0.U(3.W))
     val request_info_enq_fire = request_info_queue.io.enq.ready && request_info_queue.io.enq.valid
     val request_info_deq_fire = request_info_queue.io.deq.ready && request_info_queue.io.deq.valid
@@ -155,8 +155,8 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     }
     val request_queue_flush = Mux(fsm_state===RESET_QUEUE && request_info_enq_count===0.U, true.B, false.B)
     val bitstream_queue_flush = Mux(fsm_state===RESET_QUEUE && request_info_enq_count===0.U, true.B, false.B)    
-    val request_queue = Module(new Queue(new SnappyDecompressSrcInfo, 6, false, false, request_queue_flush))
-    val bitstream_queue = Module(new Queue(UInt(l2bw.W), 6, false, false, bitstream_queue_flush))
+    val request_queue = Module(new Queue(new SnappyDecompressSrcInfo, 6, false, false, request_queue_flush || reset))
+    val bitstream_queue = Module(new Queue(UInt(l2bw.W), 6, false, false, bitstream_queue_flush || reset))
     
     val buffermanager = Module(new BufferManagerReverse(l2bw))
     val bitstream = Wire(UInt(l2bw.W))
