@@ -2,7 +2,7 @@ package compressacc
 
 import Chisel._
 import chisel3.{Printable}
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 
 
 class PtrInfo extends Bundle {

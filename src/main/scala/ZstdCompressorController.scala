@@ -3,7 +3,7 @@ package compressacc
 import chisel3._
 import chisel3.util._
 import chisel3.{Printable}
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.util.DecoupledHelper
 import ZstdConsts._
 import CompressorConsts._
