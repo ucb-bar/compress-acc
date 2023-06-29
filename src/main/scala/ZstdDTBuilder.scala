@@ -209,7 +209,7 @@ class ZstdDTBuilder(l2bw: Int)(implicit p: Parameters) extends Module{
     val input_src_info_nmb_enq_count = RegInit(0.U(32.W))
     val input_src_info_inside_count = RegInit(0.U(3.W))
     val input_src_info_queue_flush = state===3.U
-    val input_src_info_queue = Module(new Queue(new SnappyDecompressSrcInfo, 4, false, false, input_src_info_queue_flush)) //request data to memloader
+    val input_src_info_queue = Module(new Queue(new SnappyDecompressSrcInfo, 4, false, false, input_src_info_queue_flush || reset)) //request data to memloader
     val input_src_info_nmb_queue = Module(new Queue(new SnappyDecompressSrcInfo, 4))
     io.input_src_info <> input_src_info_nmb_queue.io.deq
     input_src_info_nmb_queue.io.enq <> input_src_info_queue.io.deq
@@ -217,7 +217,7 @@ class ZstdDTBuilder(l2bw: Int)(implicit p: Parameters) extends Module{
     val input_stream_requests_inflight = RegInit(0.U(3.W))
     val input_stream_enq_count = RegInit(0.U(32.W))
     val input_stream_queue_flush = state===3.U
-    val input_stream_queue = Module(new Queue(UInt(l2bw.W), 4, false, false, input_stream_queue_flush)) //receive data from memloader
+    val input_stream_queue = Module(new Queue(UInt(l2bw.W), 4, false, false, input_stream_queue_flush || reset)) //receive data from memloader
     // Queue-related logics
     val input_src_info_enq_fire = input_src_info_queue.io.enq.ready && input_src_info_queue.io.enq.valid
     val input_src_info_deq_fire = input_src_info_queue.io.deq.ready && input_src_info_queue.io.deq.valid
