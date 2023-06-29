@@ -3,8 +3,8 @@
 set -ex
 
 BASEDIR=$(pwd)
-INPUTDIR="/scratch/joonho.whangbo/silesia-slice-1kB-first"
-OUTPUTDIR="$BASEDIR/../zstd-silesia-1k-baremetal-decomp"
+INPUTDIR="../../software/benchmarks/HyperCompressBench/remapped_benchmarks/ZSTD-DECOMPRESS"
+OUTPUTDIR="$BASEDIR"
 ZSTD_DIR="$BASEDIR/../../software/zstd"
 
 RUNDIR="$ZSTD_DIR/programs"
@@ -38,8 +38,8 @@ function buildbench() {
 
 
     riscv64-unknown-elf-g++ -DRISCV -fno-common -fno-builtin-printf -specs=htif_nano.specs -c test.c
-    riscv64-unknown-elf-g++ -DRISCV -fno-common -fno-builtin-printf -specs=htif_nano.specs -c accel.c
-    riscv64-unknown-elf-g++ -DRISCV -static -specs=htif_nano.specs test.o accel.o -o $OUTPUTDIR/$1.riscv
+    riscv64-unknown-elf-g++ -DRISCV -fno-common -fno-builtin-printf -specs=htif_nano.specs -c accellib.c
+    riscv64-unknown-elf-g++ -DRISCV -static -specs=htif_nano.specs test.o accellib.o -o $OUTPUTDIR/$1.riscv
 
 }
 
@@ -50,6 +50,9 @@ function buildbench_all() {
   done
 }
 
-compile_zstd
-buildbench_all
+# compile_zstd
+# buildbench_all
+
+
+buildbench 000000_cl1_ws10
 
