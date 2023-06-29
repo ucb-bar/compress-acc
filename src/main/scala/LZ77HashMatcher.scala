@@ -4,7 +4,7 @@ import Chisel._
 import chisel3.{Printable, SyncReadMem}
 import chisel3.util.{PriorityEncoder}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig, TLBPTWIO, TLB, MStatus, PRV}
 import freechips.rocketchip.util.DecoupledHelper
