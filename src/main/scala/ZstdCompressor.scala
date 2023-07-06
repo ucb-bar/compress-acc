@@ -34,7 +34,7 @@ class ZstdCompressor(opcodes: OpcodeSet)(implicit p: Parameters)
 
   override lazy val module = new ZstdCompressorImp(this)
 
-  val tapeout = p(HyperscaleSoCTapeout)
+  val tapeout = p(HyperscaleSoCTapeOut)
 
   val l2_fhdr_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection("[fhdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
