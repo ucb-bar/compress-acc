@@ -78,6 +78,11 @@ class HashTableBasic(numEntriesLog2HW: Int = 14)(implicit p: Parameters) extends
 
   val read_print_helper = RegInit(false.B)
 
+  // NOTE: When using CY to simulate the Snappy & Zstd compressors, we need to use RegNext for writes.
+  // This is due to the discrepency between how CIRCT and SFC generates Verilog SRAMs. Technically,
+  // read & writes happening in the same cycle is a undefined behavior, but SFC allows writes to happen under reads.
+  // In CIRCT, the writes are ignored.
+
 // val last_io_write_req_valid = RegNext(io.write_req.valid)
 // val last_io_write_req_bits_absolute_addr_input_val = RegNext(io.write_req.bits.absolute_addr_input_val)
 // val last_io_write_req_bits_unhashed_input_key = RegNext(io.write_req.bits.unhashed_input_key)
