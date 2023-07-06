@@ -220,9 +220,9 @@ class WithZstdDecompressorBase extends Config ((site, here, up) => {
   case ZstdDecompressorCmdQueDepth => 4
   case HufDecompressDecompAtOnce => 4
   case NoSnappy => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val zstd_decompressor = LazyModule.apply(new ZstdDecompressor(OpcodeSet.custom2)(p))
+      val zstd_decompressor = LazyModule.apply(new ZstdDecompressor(OpcodeSet.custom0)(p))
       zstd_decompressor
     }
   )
@@ -232,6 +232,10 @@ class WithZstdDecompressorBase extends Config ((site, here, up) => {
 
 class WithHufSpeculationAmount(n: Int = 4) extends Config ((site, here, up) => {
   case HufDecompressDecompAtOnce => n
+})
+
+class EnableSnappyInMergedDecompressor extends Config ((site, here, up) => {
+  case NoSnappy => false
 })
 
 class WithZstdDecompressor4 extends Config (
@@ -246,6 +250,12 @@ class WithZstdDecompressor8 extends Config (
 
 class WithZstdDecompressor16 extends Config (
   new WithHufSpeculationAmount(16) ++
+  new WithZstdDecompressorBase
+)
+
+class WithMergedDecompressor16Spec extends Config (
+  new WithHufSpeculationAmount(16) ++
+  new EnableSnappyInMergedDecompressor ++
   new WithZstdDecompressorBase
 )
 

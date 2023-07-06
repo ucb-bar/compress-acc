@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include "rocc.h"
 
-#define COMPRESS_OPCODE 2
+#define COMPRESS_OPCODE 1
 
 #define COMPRESS_SFENCE 0
 #define FUNCT_ZSTD_SRC_INFO 1
