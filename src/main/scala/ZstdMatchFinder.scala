@@ -92,6 +92,8 @@ class ZstdMatchFinder(removeSnappy: Boolean)(implicit p: Parameters) extends Mod
   lz77hashmatcher.io.src_info <> io.src.compress_src_info2
 
   if (!removeSnappy) {
+    println("Snappy accelerator merged\n")
+
     val zstd_litlen_injector = Module(new ZstdMatchFinderLitLenInjector)
     zstd_litlen_injector.io.memwrites_in.bits := lz77hashmatcher.io.memwrites_out.bits
     zstd_litlen_injector.io.memwrites_in.valid := lz77hashmatcher.io.memwrites_out.valid && use_zstd
@@ -107,19 +109,29 @@ class ZstdMatchFinder(removeSnappy: Boolean)(implicit p: Parameters) extends Mod
     val snappy_litlen_injector = Module(new SnappyCompressLitLenInjector)
     snappy_litlen_injector.io.memwrites_in <> snappy_copy_expander.io.memwrites_out
 
+    assert(!(use_zstd && snappy_litlen_injector.io.memwrites_out.fire), "snappy_litlen_injection outputing memwrites when algo is zstd")
+    assert(!(use_zstd && snappy_copy_expander.io.memwrites_in.fire), "snappy_copy_expander accepting memwrites when algo is zstd")
 
     val seq_memwriter = Module(new ZstdMatchFinderMemwriter("seq-writer", writeCmpFlag=true))
     seq_memwriter.io.memwrites_in.bits := Mux(use_zstd,
-      zstd_litlen_injector.io.seq_memwrites_out.bits,
-      snappy_litlen_injector.io.memwrites_out.bits)
+                                              zstd_litlen_injector.io.seq_memwrites_out.bits,
+                                              snappy_litlen_injector.io.memwrites_out.bits)
     seq_memwriter.io.memwrites_in.valid := (use_zstd && zstd_litlen_injector.io.seq_memwrites_out.valid) ||
-    (!use_zstd && snappy_litlen_injector.io.memwrites_out.valid)
+                                           (!use_zstd && snappy_litlen_injector.io.memwrites_out.valid)
     seq_memwriter.io.compress_dest_info <> io.dst.seq_dst_info
     seq_memwriter.io.force_write := !use_zstd // Write to cmpflag for snappy
     io.l2io.seq_memwriter_userif <> seq_memwriter.io.l2io
 
     zstd_litlen_injector.io.seq_memwrites_out.ready := (use_zstd && seq_memwriter.io.memwrites_in.ready)
     snappy_litlen_injector.io.memwrites_out.ready := (!use_zstd && seq_memwriter.io.memwrites_in.ready)
+
+
+
+    when (seq_memwriter.io.memwrites_in.fire && use_zstd) {
+      assert(zstd_litlen_injector.io.seq_memwrites_out.fire, "zstd_litlen_injector should fire here")
+      assert(!snappy_litlen_injector.io.memwrites_out.fire, "snappy_litlen_injector should not fire here")
+    }
+
 
     val lit_memwriter = Module(new ZstdMatchFinderMemwriter("lit-writer", writeCmpFlag=false))
     lit_memwriter.io.memwrites_in <> zstd_litlen_injector.io.lit_memwrites_out
@@ -130,6 +142,8 @@ class ZstdMatchFinder(removeSnappy: Boolean)(implicit p: Parameters) extends Mod
     io.buff_consumed.lit_consumed_bytes <> lit_memwriter.io.written_bytes
     io.buff_consumed.seq_consumed_bytes <> seq_memwriter.io.written_bytes
   } else {
+    println("Snappy accelerator not merged\n")
+
     val zstd_litlen_injector = Module(new ZstdMatchFinderLitLenInjector)
     zstd_litlen_injector.io.memwrites_in <> lz77hashmatcher.io.memwrites_out
 
