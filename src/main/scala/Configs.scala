@@ -282,13 +282,13 @@ class WithSnappyDecompressor extends Config ((site, here, up) => {
 
 class WithSnappyComplete extends Config((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom2)(p))
+      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       compress_accel_decompressor
     },
     (p: Parameters) => {
-      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom3)(p))
+      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
       compress_accel_compressor
     }
   )
@@ -321,7 +321,7 @@ class AcceleratorPlacementChiplet extends Config ((site, here, up) => {
 class WithSnappyCompleteFireSim extends Config ((site, here, up) => {
   case LZ77HistBufOverProvisionFactor => 64
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
       val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom2)(p))
       compress_accel_decompressor
@@ -336,7 +336,7 @@ class WithSnappyCompleteFireSim extends Config ((site, here, up) => {
 
 class WithSnappyCompleteASIC extends Config ((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
       val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom2)(p))
       compress_accel_decompressor
