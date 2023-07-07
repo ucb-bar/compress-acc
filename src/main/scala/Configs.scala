@@ -39,6 +39,10 @@ case object CompressAccelFarAccelLocalCache extends Field[Boolean](false)
 
 
 
+
+case object HyperscaleSoCTapeOut extends Field[Boolean](false)
+
+
 //////////////////////////////////////////////////////////////////////////////
 // ZSTD stuff
 //////////////////////////////////////////////////////////////////////////////
@@ -49,13 +53,35 @@ class WithZstdCompressor extends Config ((site, here, up) => {
     ))
   case HufCompressUnrollCnt => 2
   case HufCompressDicBuilderProcessedStatBytesPerCycle => 2
-  case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 2
+  case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 4
   case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
   case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
       val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
+      zstd_compressor
+    }
+  )
+})
+
+class WithZstdCompressorReducedAccuracy extends Config ((site, here, up) => {
+  case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case ZstdCompressorKey => Some(ZstdCompressorConfig(
+    queDepth = 4
+    ))
+  case HufCompressUnrollCnt => 2
+  case HufCompressDicBuilderProcessedStatBytesPerCycle => 2
+  case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 4
+  case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
+  case ZstdLiteralLengthMaxAccuracy => 7
+  case ZstdMatchLengthMaxAccuracy => 7
+  case ZstdOffsetMaxAccuracy => 6
+  case RemoveSnappyFromMergedAccelerator => true
+  case CompressAccelPrintfEnable => true
+  case BuildRoCC => Seq(
+    (p: Parameters) => {
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
       zstd_compressor
     }
   )
