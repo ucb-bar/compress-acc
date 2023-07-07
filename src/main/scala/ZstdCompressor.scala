@@ -35,132 +35,133 @@ class ZstdCompressor(opcodes: OpcodeSet)(implicit p: Parameters)
   override lazy val module = new ZstdCompressorImp(this)
 
   val tapeout = p(HyperscaleSoCTapeOut)
+  val roccTLNode = if (tapeout) atlNode else tlNode
 
   val l2_fhdr_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection("[fhdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper("[fhdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
   }
-  tlNode := l2_fhdr_writer.masterNode
+  roccTlNode := l2_fhdr_writer.masterNode
 
   val l2_bhdr_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection("[bhdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper("[bhdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
   }
-  tlNode := l2_bhdr_writer.masterNode
+  roccTlNode := l2_bhdr_writer.masterNode
 
   val l2_mf_reader = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection("[mf_reader]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper("[mf_reader]", numOutstandingReqs=32))
   }
-  tlNode := l2_mf_reader.masterNode
+  roccTlNode := l2_mf_reader.masterNode
 
   val l2_mf_seqwriter = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[mf_seqwriter]", numOutstandingReqs=32, queueRequests=true, queueResponses=true, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[mf_seqwriter]", numOutstandingReqs=32, queueRequests=true, queueResponses=true, printWriteBytes=true))
   }
-  tlNode := l2_mf_seqwriter.masterNode
+  roccTlNode := l2_mf_seqwriter.masterNode
 
   val l2_mf_litwriter = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[mf_litwriter]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[mf_litwriter]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
   }
-  tlNode := l2_mf_litwriter.masterNode
+  roccTlNode := l2_mf_litwriter.masterNode
 
   val l2_huf_lit_reader = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_lit_reader]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper(printInfo="[huf_lit_reader]", numOutstandingReqs=32))
   }
-  tlNode := l2_huf_lit_reader.masterNode
+  roccTlNode := l2_huf_lit_reader.masterNode
 
   val l2_huf_dic_reader = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_dic_reader]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper(printInfo="[huf_dic_reader]", numOutstandingReqs=32))
   }
-  tlNode := l2_huf_dic_reader.masterNode
+  roccTlNode := l2_huf_dic_reader.masterNode
 
   val l2_huf_dic_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_dic_writer]", numOutstandingReqs=32, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[huf_dic_writer]", numOutstandingReqs=32, printWriteBytes=true))
   }
-  tlNode := l2_huf_dic_writer.masterNode
+  roccTlNode := l2_huf_dic_writer.masterNode
 
   val l2_huf_hdr_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_hdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[huf_hdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
   }
-  tlNode := l2_huf_hdr_writer.masterNode
+  roccTlNode := l2_huf_hdr_writer.masterNode
 
   val l2_huf_jt_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_jt_writer]", numOutstandingReqs=4, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[huf_jt_writer]", numOutstandingReqs=4, printWriteBytes=true))
   }
-  tlNode := l2_huf_jt_writer.masterNode
+  roccTlNode := l2_huf_jt_writer.masterNode
 
   val l2_huf_lit_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_lit_writer]", numOutstandingReqs=32, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[huf_lit_writer]", numOutstandingReqs=32, printWriteBytes=true))
   }
-  tlNode := l2_huf_lit_writer.masterNode
+  roccTlNode := l2_huf_lit_writer.masterNode
 
   val l2_seq_reader = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[seq_reader]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper(printInfo="[seq_reader]", numOutstandingReqs=32))
   }
-  tlNode := l2_seq_reader.masterNode
+  roccTlNode := l2_seq_reader.masterNode
 
   val l2_seq_reader2 = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[seq_reader2]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper(printInfo="[seq_reader2]", numOutstandingReqs=32))
   }
-  tlNode := l2_seq_reader2.masterNode
+  roccTlNode := l2_seq_reader2.masterNode
 
   val l2_seq_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[seq_writer]", numOutstandingReqs=32, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[seq_writer]", numOutstandingReqs=32, printWriteBytes=true))
   }
-  tlNode := l2_seq_writer.masterNode
+  roccTlNode := l2_seq_writer.masterNode
 
   val l2_raw_block_reader = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_block_reader]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper(printInfo="[raw_block_reader]", numOutstandingReqs=32))
   }
-  tlNode := l2_raw_block_reader.masterNode
+  roccTlNode := l2_raw_block_reader.masterNode
 
   val l2_raw_block_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_block_writer]", numOutstandingReqs=32, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[raw_block_writer]", numOutstandingReqs=32, printWriteBytes=true))
   }
-  tlNode := l2_raw_block_writer.masterNode
+  roccTlNode := l2_raw_block_writer.masterNode
 
   val l2_raw_lit_reader = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_lit_reader]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper(printInfo="[raw_lit_reader]", numOutstandingReqs=32))
   }
-  tlNode := l2_raw_lit_reader.masterNode
+  roccTlNode := l2_raw_lit_reader.masterNode
 
   val l2_raw_lit_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_lit_writer]", numOutstandingReqs=32, printWriteBytes=true))
   } else {
     LazyModule(new L2MemHelper(printInfo="[raw_lit_writer]", numOutstandingReqs=32, printWriteBytes=true))
   }
-  tlNode := l2_raw_lit_writer.masterNode
+  roccTlNode := l2_raw_lit_writer.masterNode
 }
 
 class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters) 
