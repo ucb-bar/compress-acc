@@ -36,7 +36,7 @@ class ZstdSeqExecLoader(l2bw: Int)(implicit p: Parameters) extends Module{
   // Zstd modules
   // Queue (1) Literal data queue: receives literals from the memloader
   val litdata_queue_flush = false.B //io.lit_completion
-  val litdata_queue = Module(new Queue(new LiteralChunk, 5, false, false, litdata_queue_flush))
+  val litdata_queue = Module(new Queue(new LiteralChunk, 5, false, false, litdata_queue_flush || reset))
   // Queue (2) Command queue: receives sequences (LL and ML sliced into (L2 bandwidth)/8 bytes)
   val command_queue = Module(new Queue(new ZstdSeqInfo, 5))
 
