@@ -40,7 +40,7 @@ case object CompressAccelFarAccelLocalCache extends Field[Boolean](false)
 
 
 
-case object HyperscaleSoCTapeOut extends Field[Boolean](false)
+case object HyperscaleSoCTapeOut extends Field[Boolean](true)
 
 
 //////////////////////////////////////////////////////////////////////////////
