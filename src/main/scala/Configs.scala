@@ -361,6 +361,7 @@ class WithSnappyCompleteFireSim extends Config ((site, here, up) => {
 
 
 class WithSnappyCompleteASIC extends Config ((site, here, up) => {
+  case LZ77HistBufOverProvisionFactor => 1
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
   case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
