@@ -24,13 +24,14 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
 
 
   val tapeout = p(HyperscaleSoCTapeOut)
+  val roccTLNode = if (tapeout) atlNode else tlNode
 
   val l2_cmpflag_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection("[cmpflag_writer]", numOutstandingReqs=2))
   } else {
     LazyModule(new L2MemHelper("[cmpflag_writer]", numOutstandingReqs=2))
   }
-  tlNode := l2_cmpflag_writer.masterNode
+  roccTLNode := l2_cmpflag_writer.masterNode
 
   // For frame header
   val l2_fhdr_reader = if (!tapeout) {
@@ -38,7 +39,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[fhdr_reader]", numOutstandingReqs=4))
   }
-  tlNode := l2_fhdr_reader.masterNode
+  roccTLNode := l2_fhdr_reader.masterNode
 
   // For block header
   val l2_bhdr_reader = if (!tapeout) {
@@ -46,7 +47,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[bhdr_reader]", numOutstandingReqs=4))
   }
-  tlNode := l2_bhdr_reader.masterNode
+  roccTLNode := l2_bhdr_reader.masterNode
 
   // For Huffman
   val l2_huf_literal_reader = if (!tapeout) {
@@ -54,21 +55,21 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[huf_lit_reader]", numOutstandingReqs=32))
   }
-  tlNode := l2_huf_literal_reader.masterNode
+  roccTLNode := l2_huf_literal_reader.masterNode
 
   val l2_huf_header_reader = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection("[huf_hdr_reader]", numOutstandingReqs=4))
   } else {
     LazyModule(new L2MemHelper("[huf_hdr_reader]", numOutstandingReqs=4))
   }
-  tlNode := l2_huf_header_reader.masterNode
+  roccTLNode := l2_huf_header_reader.masterNode
 
   val l2_huf_literal_writer = if (!tapeout) {
     LazyModule(new L2MemHelperLatencyInjection("[huf_lit_writer]", numOutstandingReqs=32))
   } else {
     LazyModule(new L2MemHelper("[huf_lit_writer]", numOutstandingReqs=32))
   }
-  tlNode := l2_huf_literal_writer.masterNode
+  roccTLNode := l2_huf_literal_writer.masterNode
 
   // For FSE
   //memloader of dt builder
@@ -77,7 +78,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[mem_decomp_ireader_dtbuilder]", numOutstandingReqs=32))
   }
-  tlNode := mem_decomp_ireader_dtbuilder.masterNode
+  roccTLNode := mem_decomp_ireader_dtbuilder.masterNode
 
 	//memloader of dt reader
 	val mem_decomp_ireader_dtreader = if (!tapeout) {
@@ -85,7 +86,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[mem_decomp_ireader_dtreader]", numOutstandingReqs=32))
   }
-  tlNode := mem_decomp_ireader_dtreader.masterNode
+  roccTLNode := mem_decomp_ireader_dtreader.masterNode
 
   // For LZ77 
   //memloader of seq executor-history lookup
@@ -94,7 +95,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[m_decomp_readbackref]", numOutstandingReqs=32))
   }
-  tlNode := mem_decomp_ireader_histlookup.masterNode
+  roccTLNode := mem_decomp_ireader_histlookup.masterNode
 
 	//memloader of seq executor
 	val mem_decomp_ireader_seqexec = if (!tapeout) {
@@ -102,7 +103,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[mem_decomp_ireader_seqexec]", numOutstandingReqs=32))
   }
-  tlNode := mem_decomp_ireader_seqexec.masterNode
+  roccTLNode := mem_decomp_ireader_seqexec.masterNode
 
 	//memwriter of seq executor
 	val mem_decomp_writer_seqexec = if (!tapeout) {
@@ -110,7 +111,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper(printInfo="[m_decomp_writer_seqexec]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
   }
-	tlNode := mem_decomp_writer_seqexec.masterNode
+	roccTLNode := mem_decomp_writer_seqexec.masterNode
 
   // For Raw and RLE blocks
   // memloader
@@ -119,7 +120,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   } else {
     LazyModule(new L2MemHelper("[mem_decomp_ireader_rawrle]", numOutstandingReqs=32))
   }
-	tlNode := mem_decomp_ireader_rawrle.masterNode
+	roccTLNode := mem_decomp_ireader_rawrle.masterNode
 }
 
 class ZstdDecompressorImp(outer: ZstdDecompressor)(implicit p: Parameters) 
