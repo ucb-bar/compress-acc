@@ -28,7 +28,7 @@ compile_zstd
 
 function buildbench() {
     INPUTDIR="$BASEDIR/../../software/benchmarks/HyperCompressBench/extracted_benchmarks/ZSTD-COMPRESS"
-    OUTPUTDIR="$BASEDIR/../../../../sims/firesim/deploy/workloads/hyper-compress-bench-zstd"
+    OUTPUTDIR="$BASEDIR/../tests/hcb-zstd-compress"
 
     if [ ! -d $OUTPUTDIR ]
     then
@@ -42,7 +42,6 @@ function buildbench() {
     riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c accellib.c
     riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c zstd_decompress.c
     riscv64-unknown-elf-gcc -static -specs=htif_nano.specs test.o accellib.o zstd_decompress.o -o $OUTPUTDIR/$1.riscv
-    cp $OUTPUTDIR/$1.riscv .
 }
 
 function buildbench_all() {

@@ -4,7 +4,7 @@ set -ex
 
 BASEDIR=$(pwd)
 INPUTDIR="../../software/benchmarks/HyperCompressBench/extracted_benchmarks/ZSTD-DECOMPRESS"
-OUTPUTDIR="$BASEDIR"
+OUTPUTDIR="$BASEDIR/../tests/hcb-zstd-decompress"
 ZSTD_DIR="$BASEDIR/../../software/zstd"
 
 RUNDIR="$ZSTD_DIR/programs"
@@ -21,6 +21,11 @@ function compile_zstd() {
 
 
 function buildbench() {
+
+    if [ ! -d $OUTPUTDIR ]
+    then
+      mkdir $OUTPUTDIR
+    fi
 
     cd $OUTPUTDIR
     INPUT_FILE=$INPUTDIR/$1

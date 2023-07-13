@@ -14,7 +14,7 @@
 
 
 
-/* #define FIRESIM */
+#define FIRESIM
 
 int main() {
     size_t litBuffSize = 1 << BUFF_AREA_BYTES_LOG;
