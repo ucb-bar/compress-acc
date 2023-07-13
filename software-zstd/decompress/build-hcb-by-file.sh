@@ -3,7 +3,7 @@
 set -ex
 
 BASEDIR=$(pwd)
-INPUTDIR="../../software/benchmarks/HyperCompressBench/extracted_benchmarks/ZSTD-DECOMPRESS"
+INPUTDIR="$BASEDIR/../../software/benchmarks/HyperCompressBench/extracted_benchmarks/ZSTD-DECOMPRESS"
 OUTPUTDIR="$BASEDIR/../tests/hcb-zstd-decompress"
 ZSTD_DIR="$BASEDIR/../../software/zstd"
 
@@ -43,4 +43,4 @@ function buildbench() {
     riscv64-unknown-elf-g++ -DRISCV -static -specs=htif_nano.specs test.o accellib.o -o $OUTPUTDIR/$1.riscv
 }
 
-buildbench 000000_cl1_ws10
+buildbench 009990_cl0_ws16
