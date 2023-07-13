@@ -3,7 +3,7 @@
 set -ex
 
 BASEDIR=$(pwd)
-INPUTDIR="../../software/benchmarks/HyperCompressBench/remapped_benchmarks/ZSTD-DECOMPRESS"
+INPUTDIR="../../software/benchmarks/HyperCompressBench/extracted_benchmarks/ZSTD-DECOMPRESS"
 OUTPUTDIR="$BASEDIR"
 ZSTD_DIR="$BASEDIR/../../software/zstd"
 
@@ -28,31 +28,14 @@ function buildbench() {
 
     $ZSTD_COMPRESSOR $INPUT_FILE -o $OUTPUT_FILE
 
-
-
     cd $BASEDIR
     xxd -i -n benchmark_uncompressed_data $INPUT_FILE > benchmark_data.h
     xxd -i -n benchmark_compressed_data $OUTPUT_FILE >> benchmark_data.h
-
     rm $OUTPUT_FILE
-
 
     riscv64-unknown-elf-g++ -DRISCV -fno-common -fno-builtin-printf -specs=htif_nano.specs -c test.c
     riscv64-unknown-elf-g++ -DRISCV -fno-common -fno-builtin-printf -specs=htif_nano.specs -c accellib.c
     riscv64-unknown-elf-g++ -DRISCV -static -specs=htif_nano.specs test.o accellib.o -o $OUTPUTDIR/$1.riscv
-
 }
-
-function buildbench_all() {
-  for i in {1..12}
-  do
-    buildbench "$i"
-  done
-}
-
-# compile_zstd
-# buildbench_all
-
 
 buildbench 000000_cl1_ws10
-
