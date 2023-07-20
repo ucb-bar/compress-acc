@@ -36,7 +36,7 @@ class L2MemHelperBundle extends Bundle {
 }
 
 
-class L2MemHelper(printInfo: String = "", numOutstandingReqs: Int = 32, queueRequests: Boolean = false, queueResponses: Boolean = false, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModule {
+class L2MemHelper(printInfo: String = "", numOutstandingReqs: Int = 32, queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModule {
   val numOutstandingRequestsAllowed = numOutstandingReqs
   val tlTagBits = log2Ceil(numOutstandingRequestsAllowed)
 
@@ -48,7 +48,7 @@ class L2MemHelper(printInfo: String = "", numOutstandingReqs: Int = 32, queueReq
   )))
 }
 
-class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequests: Boolean = false, queueResponses: Boolean = false, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModuleImp(outer)
+class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModuleImp(outer)
   with HasCoreParameters
   with MemoryOpConstants {
 
