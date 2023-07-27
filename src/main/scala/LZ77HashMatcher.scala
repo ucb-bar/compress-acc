@@ -381,7 +381,14 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
     is (sHistoryResultAvailable) {
       // by default, i.e. if stalled out, need to keep feeding history
       // buffer the same input:
-      history_buffer.io.read_req_in.bits.offset := in_progress_offset
+
+      when (io.memloader_in.output_valid && io.memwrites_out.ready) {
+        // OPT_LINE_1: THIS LINE USED TO BE AT THE MARKER LABELED OPT_LINE_1 below. IT IS MOVED OUT FOR CRITICAL PATH OPT.
+        // ...
+        history_buffer.io.read_req_in.bits.offset := in_progress_offset - io.memloader_in.available_output_bytes
+      } .otherwise {
+        history_buffer.io.read_req_in.bits.offset := in_progress_offset
+      }
       history_buffer.io.read_req_in.valid := true.B
 
 
@@ -410,14 +417,15 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
         when (!io.memloader_in.output_last_chunk) {
           // this is not necessarily the end of the copy and it isn't the end
           // of the buffer overall. just advance stuff and move on
-          io.memloader_in.output_ready := true.B
+          io.memloader_in.output_ready := io.memwrites_out.ready
           io.memloader_in.user_consumed_bytes := io.memloader_in.available_output_bytes
 
-          when (io.memloader_in.output_valid) {
+          when (io.memloader_in.output_valid && io.memwrites_out.ready) {
               history_buffer.io.read_advance_ptr.bits.advance_bytes := io.memloader_in.available_output_bytes
               history_buffer.io.read_advance_ptr.valid := true.B
 
-              history_buffer.io.read_req_in.bits.offset := in_progress_offset - io.memloader_in.available_output_bytes
+              // OPT_LINE_1: THE LINE THAT USED TO BE HERE IS MOVED OUT FOR CRITICAL PATH OPT.
+              // ...
               history_buffer.io.read_req_in.valid := true.B
 
               in_progress_copy_len := in_progress_copy_len + io.memloader_in.available_output_bytes

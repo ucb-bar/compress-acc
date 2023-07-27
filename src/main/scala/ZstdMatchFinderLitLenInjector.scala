@@ -23,7 +23,7 @@ class ZstdMatchFinderLitLenInjector()(implicit p: Parameters) extends Module {
 
   val track_blocks = RegInit(0.U(64.W))
 
-  val incoming_writes_Q = Module(new Queue(new CompressWriterBundle, 4))
+  val incoming_writes_Q = Module(new Queue(new CompressWriterBundle, 5))
   incoming_writes_Q.io.enq <> io.memwrites_in
 
   when (io.memwrites_in.fire) {
