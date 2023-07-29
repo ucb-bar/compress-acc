@@ -145,13 +145,14 @@ class FSECompressorDicBuilder(
 
   val sIdle = 0.U
   val sCount = 1.U
-  val sNormalizeCount = 2.U
-  val sBuildCTableSymbolStartPositions = 3.U
-  val sBuildCTableSpreadSymbols = 4.U
-  val sBuildCTableBuildTable = 5.U
-  val sBuildCTableSymbolTT = 6.U
-  val sWriteCTable = 7.U
-  val sLookup = 8.U
+  val sSetNormalizeCountReg = 2.U
+  val sNormalizeCount = 3.U
+  val sBuildCTableSymbolStartPositions = 4.U
+  val sBuildCTableSpreadSymbols = 5.U
+  val sBuildCTableBuildTable = 6.U
+  val sBuildCTableSymbolTT = 7.U
+  val sWriteCTable = 8.U
+  val sLookup = 9.U
   val dicBuilderState = RegInit(0.U(4.W))
 
 
@@ -273,7 +274,7 @@ class FSECompressorDicBuilder(
   }
 
 
-  val ll_normalizedCounter = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
+  val ll_normalizedCounter = RegInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
   val ll_normalizedCounterMaxAdjusted = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
   val ll_count_has_nbseq_1_as_value = ll_count.map{ case count =>
     count === ll_nbseq_1
@@ -588,7 +589,7 @@ class FSECompressorDicBuilder(
         }
 
         when (!use_predefined_mode) {
-          dicBuilderState := sNormalizeCount
+          dicBuilderState := sSetNormalizeCountReg
         } .otherwise {
 
           // TODO : set io.ll_stream.output_ready to true & move on to sLookup without going through sCount
@@ -625,6 +626,10 @@ class FSECompressorDicBuilder(
           }
         }
       }
+    }
+
+    is (sSetNormalizeCountReg) {
+      dicBuilderState := sNormalizeCount
     }
 
     is (sNormalizeCount) {

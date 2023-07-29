@@ -1,0 +1,5 @@
+{
+  "name": "hcb-zstd-compress",
+  "base": "bare-base.json",
+  "bin": "000185_cl1_ws10.riscv"
+}

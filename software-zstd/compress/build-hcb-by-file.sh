@@ -32,7 +32,7 @@ function buildbench() {
 
     if [ ! -d $OUTPUTDIR ]
     then
-      mkdir $OUTPUTDIR
+      mkdir -p $OUTPUTDIR
     fi
 
     cd $BASEDIR
