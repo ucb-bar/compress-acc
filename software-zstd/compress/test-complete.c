@@ -8,8 +8,8 @@
 #include "encoding.h"
 #include "benchmark_data_helper.h"
 
-/* #define DO_PRINT */
-/* #define DO_CHECKING */
+#define DO_PRINT
+#define DO_CHECKING
 
 
 

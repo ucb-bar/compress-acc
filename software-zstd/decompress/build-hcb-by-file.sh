@@ -24,7 +24,7 @@ function buildbench() {
 
     if [ ! -d $OUTPUTDIR ]
     then
-      mkdir $OUTPUTDIR
+      mkdir -p $OUTPUTDIR
     fi
 
     cd $OUTPUTDIR
@@ -43,4 +43,5 @@ function buildbench() {
     riscv64-unknown-elf-g++ -DRISCV -static -specs=htif_nano.specs test.o accellib.o -o $OUTPUTDIR/$1.riscv
 }
 
-buildbench 009990_cl0_ws16
+# buildbench 009990_cl0_ws16
+buildbench 000543_cl0_ws25

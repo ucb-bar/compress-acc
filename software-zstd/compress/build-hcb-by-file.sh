@@ -73,3 +73,4 @@ function runtest() {
 
 # buildbench 007662_cl1_ws15
 buildbench 000185_cl1_ws10
+buildbench 009934_cl11_ws24

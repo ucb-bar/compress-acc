@@ -47,7 +47,8 @@ function buildbench() {
 
   riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c $TEST_FILE_NAME
   riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c accellib.c
-  riscv64-unknown-elf-gcc -static -specs=htif_nano.specs $TEST_FILE_O accellib.o -o $FINAL_OUTPUT_DIR/$3.riscv
+  riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c zstd_decompress.c
+  riscv64-unknown-elf-gcc -static -specs=htif_nano.specs $TEST_FILE_O accellib.o zstd_decompress.o -o $FINAL_OUTPUT_DIR/$3.riscv
 }
 
 
