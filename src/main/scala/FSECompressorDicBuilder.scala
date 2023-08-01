@@ -145,14 +145,16 @@ class FSECompressorDicBuilder(
 
   val sIdle = 0.U
   val sCount = 1.U
-  val sSetNormalizeCountReg = 2.U
-  val sNormalizeCount = 3.U
-  val sBuildCTableSymbolStartPositions = 4.U
-  val sBuildCTableSpreadSymbols = 5.U
-  val sBuildCTableBuildTable = 6.U
-  val sBuildCTableSymbolTT = 7.U
-  val sWriteCTable = 8.U
-  val sLookup = 9.U
+  val sSetllStep = 2.U
+  val sSetProbaBase = 3.U
+  val sSetNormalizeCountReg = 4.U
+  val sNormalizeCount = 5.U
+  val sBuildCTableSymbolStartPositions = 6.U
+  val sBuildCTableSpreadSymbols = 7.U
+  val sBuildCTableBuildTable = 8.U
+  val sBuildCTableSymbolTT = 9.U
+  val sWriteCTable = 10.U
+  val sLookup = 11.U
   val dicBuilderState = RegInit(0.U(4.W))
 
 
@@ -250,7 +252,7 @@ class FSECompressorDicBuilder(
   ll_lowProbCount := Mux(ll_useLowProbCount, neg_one_uint16.U, 1.U)
   val ll_scale = Wire(UInt(7.W))
   ll_scale := 62.U - tableLogLL.U
-  val ll_step = Wire(UInt(64.W))
+  val ll_step = Reg(UInt(64.W))
   ll_step := BigInt("4000000000000000", 16).U / ll_nbseq_1
   val ll_scale_20 = Wire(UInt(7.W))
   ll_scale_20 := ll_scale - 20.U
@@ -261,7 +263,7 @@ class FSECompressorDicBuilder(
   ll_lowThreshold := ll_nbseq_1 >> tableLogLL.U
 
 
-  val ll_proba_base = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
+  val ll_proba_base = RegInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
   val ll_proba = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
   val ll_count_times_step = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(64.W))))
   for (i <- 0 until maxSymbolLL + 1) {
@@ -589,7 +591,7 @@ class FSECompressorDicBuilder(
         }
 
         when (!use_predefined_mode) {
-          dicBuilderState := sSetNormalizeCountReg
+          dicBuilderState := sSetllStep
         } .otherwise {
 
           // TODO : set io.ll_stream.output_ready to true & move on to sLookup without going through sCount
@@ -626,6 +628,14 @@ class FSECompressorDicBuilder(
           }
         }
       }
+    }
+
+    is (sSetllStep) {
+      dicBuilderState := sSetProbaBase
+    }
+
+    is (sSetProbaBase) {
+      dicBuilderState := sSetNormalizeCountReg
     }
 
     is (sSetNormalizeCountReg) {
