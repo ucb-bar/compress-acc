@@ -571,7 +571,10 @@ class FSECompressorDicBuilder(
         ll_max_symbol_value := Mux(ll_max_symbol_value > cur_max_value, ll_max_symbol_value, cur_max_value)
       }
 
-      when (predefined_mode_q.io.enq.ready && io.ll_stream.output_valid && io.ll_stream.output_last_chunk && (io.ll_stream.user_consumed_bytes === io.ll_stream.available_output_bytes)) {
+      when (predefined_mode_q.io.enq.ready &&
+            io.ll_stream.output_valid &&
+            io.ll_stream.output_last_chunk &&
+            (io.ll_stream.user_consumed_bytes === io.ll_stream.available_output_bytes)) {
         // zstd_compress_sequences.c 271
         // if (count[codeTable[nbSeq-1]] > 1) {
         //   count[codeTable[nbSeq-1]]--;
