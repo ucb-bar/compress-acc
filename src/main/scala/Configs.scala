@@ -39,6 +39,10 @@ case object CompressAccelFarAccelLocalCache extends Field[Boolean](false)
 
 
 
+
+case object HyperscaleSoCTapeOut extends Field[Boolean](true)
+
+
 //////////////////////////////////////////////////////////////////////////////
 // ZSTD stuff
 //////////////////////////////////////////////////////////////////////////////
@@ -51,6 +55,28 @@ class WithZstdCompressor extends Config ((site, here, up) => {
   case HufCompressDicBuilderProcessedStatBytesPerCycle => 2
   case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 4
   case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
+  case RemoveSnappyFromMergedAccelerator => true
+  case CompressAccelPrintfEnable => true
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
+    (p: Parameters) => {
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
+      zstd_compressor
+    }
+  )
+})
+
+class WithZstdCompressorReducedAccuracy extends Config ((site, here, up) => {
+  case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case ZstdCompressorKey => Some(ZstdCompressorConfig(
+    queDepth = 4
+    ))
+  case HufCompressUnrollCnt => 2
+  case HufCompressDicBuilderProcessedStatBytesPerCycle => 2
+  case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 4
+  case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
+  case ZstdLiteralLengthMaxAccuracy => 7
+  case ZstdMatchLengthMaxAccuracy => 7
+  case ZstdOffsetMaxAccuracy => 6
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
   case BuildRoCC => Seq(
@@ -96,9 +122,9 @@ class WithZstdCompressorHufUnroll2HufStat8FSEStat4ReducedAccuracy extends Config
   case ZstdOffsetMaxAccuracy => 6
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       zstd_compressor
     }
   )
@@ -117,9 +143,9 @@ class WithZstdCompressorHufUnroll2HufStat16FSEStat4ReducedAccuracy extends Confi
   case ZstdOffsetMaxAccuracy => 6
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       zstd_compressor
     }
   )
@@ -138,9 +164,9 @@ class WithZstdCompressorHufUnroll4HufStat4FSEStat4ReducedAccuracy extends Config
   case ZstdOffsetMaxAccuracy => 6
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       zstd_compressor
     }
   )
@@ -159,9 +185,9 @@ class WithZstdCompressorHufUnroll2HufStat4FSEStat4ReducedAccuracy extends Config
   case ZstdOffsetMaxAccuracy => 6
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       zstd_compressor
     }
   )
@@ -182,9 +208,9 @@ class WithZstdCompressorHist2MBHufUnroll2HufStat4FSEStat4ReducedAccuracy extends
   case LZ77HistBufOverProvisionFactor => 64 // 2 -> 128kB, 64 ->  4MB
  
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       zstd_compressor
     }
   )
@@ -205,13 +231,13 @@ class WithZstdCompressorSnappyDecompressor extends Config((site, here, up) => {
   case LZ77HistBufOverProvisionFactor => 2 // 2 -> 128kB, 64 ->  4MB
  
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val snappy_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom3)(p))
+      val snappy_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       snappy_decompressor
     },
     (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       zstd_compressor
     }
   )
@@ -232,9 +258,9 @@ class WithMergedCompressorLatencyInjection extends Config((site, here, up) => {
   case LZ77HistBufOverProvisionFactor => 2 // 2 -> 128kB, 64 ->  4MB
  
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val merged_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val merged_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       merged_compressor
     }
   )
@@ -255,13 +281,13 @@ class WithMergedCompressorSnappyDecompressor extends Config((site, here, up) => 
   case LZ77HistBufOverProvisionFactor => 2 // 2 -> 128kB, 64 ->  4MB
  
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val snappy_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom3)(p))
+      val snappy_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       snappy_decompressor
     },
     (p: Parameters) => {
-      val merged_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
+      val merged_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       merged_compressor
     }
   )
@@ -273,9 +299,9 @@ class WithMergedCompressorSnappyDecompressor extends Config((site, here, up) => 
 
 class WithSnappyCompressor extends Config ((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom3)(p))
+      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
       compress_accel_compressor
     }
   )
@@ -284,9 +310,9 @@ class WithSnappyCompressor extends Config ((site, here, up) => {
 class WithSnappyCompressorRuntimeOverprovision extends Config ((site, here, up) => {
   case LZ77HistBufOverProvisionFactor => 64
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom3)(p))
+      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
       compress_accel_compressor
     }
   )
@@ -294,9 +320,9 @@ class WithSnappyCompressorRuntimeOverprovision extends Config ((site, here, up) 
 
 class WithSnappyDecompressor extends Config ((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom2)(p))
+      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       compress_accel_decompressor
     }
   )
@@ -304,13 +330,13 @@ class WithSnappyDecompressor extends Config ((site, here, up) => {
 
 class WithSnappyComplete extends Config((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom2)(p))
+      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       compress_accel_decompressor
     },
     (p: Parameters) => {
-      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom3)(p))
+      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
       compress_accel_compressor
     }
   )
@@ -343,13 +369,13 @@ class AcceleratorPlacementChiplet extends Config ((site, here, up) => {
 class WithSnappyCompleteFireSim extends Config ((site, here, up) => {
   case LZ77HistBufOverProvisionFactor => 64
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom2)(p))
+      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       compress_accel_decompressor
     },
     (p: Parameters) => {
-      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom3)(p))
+      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
       compress_accel_compressor
     }
   )
@@ -357,14 +383,15 @@ class WithSnappyCompleteFireSim extends Config ((site, here, up) => {
 
 
 class WithSnappyCompleteASIC extends Config ((site, here, up) => {
+  case LZ77HistBufOverProvisionFactor => 1
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom2)(p))
+      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       compress_accel_decompressor
     },
     (p: Parameters) => {
-      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom3)(p))
+      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
       compress_accel_compressor
     }
   )

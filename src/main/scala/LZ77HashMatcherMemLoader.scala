@@ -191,10 +191,24 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
   }
   io.consumer.output_data := Cat(remapVecData.reverse)
 
+  val buf_delayed = Reg(Valid(new BufInfoBundle))
+  val buf_delayed_ready = Wire(Bool())
 
-  val buf_last = (len_already_consumed + io.consumer.user_consumed_bytes) === buf_info_queue.io.deq.bits.len_bytes
-  val count_valids = remapVecValids.map(_.asUInt).reduce(_ +& _)
-  val unconsumed_bytes_so_far = buf_info_queue.io.deq.bits.len_bytes - len_already_consumed
+  buf_info_queue.io.deq.ready := false.B
+  when (buf_delayed_ready || (!buf_delayed.valid)) {
+    buf_delayed.valid := buf_info_queue.io.deq.valid
+    buf_delayed.bits.len_bytes := buf_info_queue.io.deq.bits.len_bytes
+    buf_info_queue.io.deq.ready := true.B
+  }
+
+  val buf_last = io.consumer.user_consumed_bytes === buf_delayed.bits.len_bytes
+  //val count_valids_old = remapVecValids.map(_.asUInt).reduce(_ +& _)
+  val count_valids_v2 = 32.U - PriorityEncoder(Cat(1.U(1.W), Cat(remapVecValids)))
+  val count_valids = count_valids_v2
+  val unconsumed_bytes_so_far = buf_delayed.bits.len_bytes
+
+
+
 
   val enough_data = Mux(unconsumed_bytes_so_far >= UInt(NUM_QUEUES),
                         count_valids === UInt(NUM_QUEUES),
@@ -208,7 +222,7 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
 
   val read_fire = DecoupledHelper(
     io.consumer.output_ready,
-    buf_info_queue.io.deq.valid,
+    buf_delayed.valid,
     enough_data
   )
 
@@ -227,7 +241,7 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
     read_start_index := (read_start_index +& io.consumer.user_consumed_bytes) % UInt(NUM_QUEUES)
   }
 
-  buf_info_queue.io.deq.ready := read_fire.fire(buf_info_queue.io.deq.valid) && buf_last
+  buf_delayed_ready := read_fire.fire(buf_delayed.valid) && buf_last
 
   when (read_fire.fire) {
     when (buf_last) {

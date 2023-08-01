@@ -160,10 +160,10 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
 
   val absolute_internal_address = Cat(rotating_request_id, absolute_address_base)
 
-  history_buffer.io.read_req_in.bits.offset := absolute_internal_address - hash_table.io.read_resp.absolute_addr_output_val
+  history_buffer.io.read_req_in.bits.offset := absolute_internal_address - RegNext(hash_table.io.read_resp.absolute_addr_output_val)
 
 
-  val NUM_BITS_FOR_STATES = 2
+  val NUM_BITS_FOR_STATES = 3
   val sClockInHTRead = 0.U(NUM_BITS_FOR_STATES.W)
       // |---- should always go to sHTResultAvailable
   val sHTResultAvailable = 1.U(NUM_BITS_FOR_STATES.W)
@@ -189,6 +189,7 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
       // |---- we can never get NO match, because of our
       //       fast-path HT storing data
   val sWriteUncompressedSizeVarint = 3.U(NUM_BITS_FOR_STATES.W)
+  val sHTtoHistPipeStage = 4.U(NUM_BITS_FOR_STATES.W)
 
   val compressorState = RegInit(sWriteUncompressedSizeVarint)
 
@@ -300,6 +301,27 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
       }
     }
     is (sHTResultAvailable) {
+
+      // CRITICAL PATH OPT: hash table interactions for next cycle are moved
+      // out here to not depend on the hash table's output this cycle
+      // OPT LINE A1
+      hash_table.io.read_req.unhashed_input_key := io.memloader_in.output_data(31, 0)
+      hash_table.io.read_req.current_absolute_addr := absolute_internal_address
+
+      when ((skip_bytes + 4.U) > io.memloader_in.available_output_bytes) {
+      } .otherwise {
+        // OPT LINE A2
+        hash_table.io.write_req.bits.unhashed_input_key := (io.memloader_in.output_data >> (skip_bytes << 3)) & (BigInt("FFFFFFFF", 16).U(32.W))
+        hash_table.io.write_req.bits.absolute_addr_input_val := absolute_internal_address + skip_bytes
+        when (io.memwrites_out.ready && io.memloader_in.output_valid) {
+          // OPT LINE A3
+          hash_table.io.read_req.unhashed_input_key := (io.memloader_in.output_data >> (skip_bytes << 3)) & (BigInt("FFFFFFFF", 16).U(32.W))
+            //io.memloader_in.output_data((skip_bytes << 3) + 31.U, (skip_bytes << 3))
+          hash_table.io.read_req.current_absolute_addr := absolute_internal_address + skip_bytes
+        }
+      }
+
+
       when (hash_table.io.read_resp.has_match) {
         // at least 4 bytes match, so we're definitely starting a copy
         // TODO(perf improvement): make the next stage start reading hist buf
@@ -312,12 +334,11 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
             hash_table.io.read_resp.absolute_addr_output_val
           )
         }
-        history_buffer.io.read_req_in.valid := true.B
-        compressorState := sHistoryResultAvailable
+        //history_buffer.io.read_req_in.valid := true.B
+        compressorState := sHTtoHistPipeStage
       } .otherwise {
 
-        hash_table.io.read_req.unhashed_input_key := io.memloader_in.output_data(31, 0)
-        hash_table.io.read_req.current_absolute_addr := absolute_internal_address
+        // OPT LINE A1
 
         when ((skip_bytes + 4.U) > io.memloader_in.available_output_bytes) {
           when (io.memloader_in.output_last_chunk) {
@@ -357,9 +378,7 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
 
           history_buffer.io.read_advance_ptr.bits.advance_bytes := skip_bytes
 
-
-          hash_table.io.write_req.bits.unhashed_input_key := (io.memloader_in.output_data >> (skip_bytes << 3)) & (BigInt("FFFFFFFF", 16).U(32.W))
-          hash_table.io.write_req.bits.absolute_addr_input_val := absolute_internal_address + skip_bytes
+          // OPT LINE A2
 
           when (io.memwrites_out.ready && io.memloader_in.output_valid) {
             CompressAccelLogger.logInfo("Advance by skip_bytes(=%d).\n", skip_bytes)
@@ -370,18 +389,27 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
             }
             absolute_address_base := absolute_address_base + skip_bytes
 
-            hash_table.io.read_req.unhashed_input_key := (io.memloader_in.output_data >> (skip_bytes << 3)) & (BigInt("FFFFFFFF", 16).U(32.W))
-              //io.memloader_in.output_data((skip_bytes << 3) + 31.U, (skip_bytes << 3))
-            hash_table.io.read_req.current_absolute_addr := absolute_internal_address + skip_bytes
+            // OPT LINE A3
             hash_table.io.write_req.valid := true.B
           }
         }
       }
     }
+    is (sHTtoHistPipeStage) {
+        history_buffer.io.read_req_in.valid := true.B
+        compressorState := sHistoryResultAvailable
+    }
     is (sHistoryResultAvailable) {
       // by default, i.e. if stalled out, need to keep feeding history
       // buffer the same input:
-      history_buffer.io.read_req_in.bits.offset := in_progress_offset
+
+      when (io.memloader_in.output_valid && io.memwrites_out.ready) {
+        // OPT_LINE_1: THIS LINE USED TO BE AT THE MARKER LABELED OPT_LINE_1 below. IT IS MOVED OUT FOR CRITICAL PATH OPT.
+        // ...
+        history_buffer.io.read_req_in.bits.offset := in_progress_offset - io.memloader_in.available_output_bytes
+      } .otherwise {
+        history_buffer.io.read_req_in.bits.offset := in_progress_offset
+      }
       history_buffer.io.read_req_in.valid := true.B
 
 
@@ -410,14 +438,15 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
         when (!io.memloader_in.output_last_chunk) {
           // this is not necessarily the end of the copy and it isn't the end
           // of the buffer overall. just advance stuff and move on
-          io.memloader_in.output_ready := true.B
+          io.memloader_in.output_ready := io.memwrites_out.ready
           io.memloader_in.user_consumed_bytes := io.memloader_in.available_output_bytes
 
-          when (io.memloader_in.output_valid) {
+          when (io.memloader_in.output_valid && io.memwrites_out.ready) {
               history_buffer.io.read_advance_ptr.bits.advance_bytes := io.memloader_in.available_output_bytes
               history_buffer.io.read_advance_ptr.valid := true.B
 
-              history_buffer.io.read_req_in.bits.offset := in_progress_offset - io.memloader_in.available_output_bytes
+              // OPT_LINE_1: THE LINE THAT USED TO BE HERE IS MOVED OUT FOR CRITICAL PATH OPT.
+              // ...
               history_buffer.io.read_req_in.valid := true.B
 
               in_progress_copy_len := in_progress_copy_len + io.memloader_in.available_output_bytes

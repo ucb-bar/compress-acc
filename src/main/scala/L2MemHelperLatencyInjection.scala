@@ -13,7 +13,7 @@ import freechips.rocketchip.rocket.{RAS}
 import freechips.rocketchip.tilelink._
 
 
-class L2MemHelperLatencyInjection(printInfo: String = "", numOutstandingReqs: Int = 32, queueRequests: Boolean = false, queueResponses: Boolean = false, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModule {
+class L2MemHelperLatencyInjection(printInfo: String = "", numOutstandingReqs: Int = 32, queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModule {
   val numOutstandingRequestsAllowed = numOutstandingReqs
   val tlTagBits = log2Ceil(numOutstandingRequestsAllowed)
 
@@ -25,7 +25,7 @@ class L2MemHelperLatencyInjection(printInfo: String = "", numOutstandingReqs: In
   )))
 }
 
-class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, printInfo: String = "", queueRequests: Boolean = false, queueResponses: Boolean = false, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModuleImp(outer)
+class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, printInfo: String = "", queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModuleImp(outer)
   with HasCoreParameters
   with MemoryOpConstants {
 
@@ -312,5 +312,4 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
   when (response_output.fire) {
     global_memop_resp_to_user := global_memop_resp_to_user + 1.U
   }
-
 }

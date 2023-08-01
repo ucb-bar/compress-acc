@@ -21,52 +21,58 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
 
   val frame_decompressor = LazyModule(new ZstdFrameDecompressor(this, cmd_que_depth))
 
-  val l2_cmpflag_writer = LazyModule(new L2MemHelperLatencyInjection("[cmpflag_writer]", numOutstandingReqs=2))
-  tlNode := l2_cmpflag_writer.masterNode
+
+
+  val tapeout = p(HyperscaleSoCTapeOut)
+  val roccTLNode = if (tapeout) atlNode else tlNode
+
+  val l2_cmpflag_writer =     LazyModule(new L2MemHelper("[cmpflag_writer]", numOutstandingReqs=2))
+  roccTLNode := TLBuffer.chainNode(1) := l2_cmpflag_writer.masterNode
 
   // For frame header
-  val l2_fhdr_reader = LazyModule(new L2MemHelperLatencyInjection("[fhdr_reader]", numOutstandingReqs=4))
-  tlNode := l2_fhdr_reader.masterNode
+  val l2_fhdr_reader =     LazyModule(new L2MemHelper("[fhdr_reader]", numOutstandingReqs=4))
+  roccTLNode := TLBuffer.chainNode(1) := l2_fhdr_reader.masterNode
+
   // For block header
-  val l2_bhdr_reader = LazyModule(new L2MemHelperLatencyInjection("[bhdr_reader]", numOutstandingReqs=4))
-  tlNode := l2_bhdr_reader.masterNode
+  val l2_bhdr_reader =     LazyModule(new L2MemHelper("[bhdr_reader]", numOutstandingReqs=4))
+  roccTLNode := TLBuffer.chainNode(1) := l2_bhdr_reader.masterNode
 
   // For Huffman
-  val l2_huf_literal_reader = LazyModule(new L2MemHelperLatencyInjection("[huf_lit_reader]", numOutstandingReqs=32))
-  tlNode := l2_huf_literal_reader.masterNode
+  val l2_huf_literal_reader =     LazyModule(new L2MemHelper("[huf_lit_reader]", numOutstandingReqs=32))
+  roccTLNode := TLBuffer.chainNode(1) := l2_huf_literal_reader.masterNode
 
-  val l2_huf_header_reader = LazyModule(new L2MemHelperLatencyInjection("[huf_hdr_reader]", numOutstandingReqs=4))
-  tlNode := l2_huf_header_reader.masterNode
+  val l2_huf_header_reader =     LazyModule(new L2MemHelper("[huf_hdr_reader]", numOutstandingReqs=4))
+  roccTLNode := TLBuffer.chainNode(1) := l2_huf_header_reader.masterNode
 
-  val l2_huf_literal_writer = LazyModule(new L2MemHelperLatencyInjection("[huf_lit_writer]", numOutstandingReqs=32))
-  tlNode := l2_huf_literal_writer.masterNode
+  val l2_huf_literal_writer =     LazyModule(new L2MemHelper("[huf_lit_writer]", numOutstandingReqs=32))
+  roccTLNode := TLBuffer.chainNode(1) := l2_huf_literal_writer.masterNode
 
   // For FSE
   //memloader of dt builder
-  val mem_decomp_ireader_dtbuilder = LazyModule(new L2MemHelperLatencyInjection("[mem_decomp_ireader_dtbuilder]", numOutstandingReqs=32))
-  tlNode := mem_decomp_ireader_dtbuilder.masterNode
+  val mem_decomp_ireader_dtbuilder =     LazyModule(new L2MemHelper("[mem_decomp_ireader_dtbuilder]", numOutstandingReqs=32))
+  roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_dtbuilder.masterNode
 
 	//memloader of dt reader
-	val mem_decomp_ireader_dtreader = LazyModule(new L2MemHelperLatencyInjection("[mem_decomp_ireader_dtreader]", numOutstandingReqs=32))
-  tlNode := mem_decomp_ireader_dtreader.masterNode
+  val mem_decomp_ireader_dtreader =     LazyModule(new L2MemHelper("[mem_decomp_ireader_dtreader]", numOutstandingReqs=32))
+  roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_dtreader.masterNode
 
   // For LZ77 
   //memloader of seq executor-history lookup
-	val mem_decomp_ireader_histlookup = LazyModule(new L2MemHelperLatencyInjection("[m_decomp_readbackref]", numOutstandingReqs=32))
-  tlNode := mem_decomp_ireader_histlookup.masterNode
+  val mem_decomp_ireader_histlookup =     LazyModule(new L2MemHelper("[m_decomp_readbackref]", numOutstandingReqs=32))
+  roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_histlookup.masterNode
 
 	//memloader of seq executor
-	val mem_decomp_ireader_seqexec = LazyModule(new L2MemHelperLatencyInjection("[mem_decomp_ireader_seqexec]", numOutstandingReqs=32))
-  tlNode := mem_decomp_ireader_seqexec.masterNode
+  val mem_decomp_ireader_seqexec =     LazyModule(new L2MemHelper("[mem_decomp_ireader_seqexec]", numOutstandingReqs=32))
+  roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_seqexec.masterNode
 
 	//memwriter of seq executor
-	val mem_decomp_writer_seqexec = LazyModule(new L2MemHelperLatencyInjection(printInfo="[m_decomp_writer_seqexec]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
-	tlNode := mem_decomp_writer_seqexec.masterNode
+  val mem_decomp_writer_seqexec =     LazyModule(new L2MemHelper(printInfo="[m_decomp_writer_seqexec]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
+  roccTLNode := TLBuffer.chainNode(1) := mem_decomp_writer_seqexec.masterNode
 
   // For Raw and RLE blocks
   // memloader
-  val mem_decomp_ireader_rawrle = LazyModule(new L2MemHelperLatencyInjection("[mem_decomp_ireader_rawrle]", numOutstandingReqs=32))
-	tlNode := mem_decomp_ireader_rawrle.masterNode
+  val mem_decomp_ireader_rawrle =    LazyModule(new L2MemHelper("[mem_decomp_ireader_rawrle]", numOutstandingReqs=32))
+  roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_rawrle.masterNode
 }
 
 class ZstdDecompressorImp(outer: ZstdDecompressor)(implicit p: Parameters) 
@@ -130,21 +136,8 @@ class ZstdDecompressorImp(outer: ZstdDecompressor)(implicit p: Parameters)
   ////////////////////////////////////////////////////////////////////////////
   // Latency Injection
   ////////////////////////////////////////////////////////////////////////////
-  val latency_inject_cycles = cmd_router.io.LATENCY_INJECTION_CYCLES
-  val has_intermediate_cache = cmd_router.io.HAS_INTERMEDIATE_CACHE
-  val latency_wowo_cache = Mux(has_intermediate_cache, 0.U, latency_inject_cycles)
-  outer.l2_cmpflag_writer.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.l2_fhdr_reader.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.l2_bhdr_reader.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.l2_huf_literal_reader.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.l2_huf_header_reader.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.l2_huf_literal_writer.module.io.latency_inject_cycles := latency_wowo_cache
-  outer.mem_decomp_ireader_dtbuilder.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.mem_decomp_ireader_dtreader.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.mem_decomp_ireader_histlookup.module.io.latency_inject_cycles := latency_wowo_cache
-  outer.mem_decomp_ireader_seqexec.module.io.latency_inject_cycles := latency_wowo_cache
-  outer.mem_decomp_writer_seqexec.module.io.latency_inject_cycles := latency_inject_cycles
-  outer.mem_decomp_ireader_rawrle.module.io.latency_inject_cycles := latency_inject_cycles
+
+  val tapeout = p(HyperscaleSoCTapeOut)
 
 
   // Boilerplate code for l2 mem helper
@@ -220,9 +213,9 @@ class WithZstdDecompressorBase extends Config ((site, here, up) => {
   case ZstdDecompressorCmdQueDepth => 4
   case HufDecompressDecompAtOnce => 4
   case NoSnappy => true
-  case BuildRoCC => Seq(
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val zstd_decompressor = LazyModule.apply(new ZstdDecompressor(OpcodeSet.custom2)(p))
+      val zstd_decompressor = LazyModule.apply(new ZstdDecompressor(OpcodeSet.custom0)(p))
       zstd_decompressor
     }
   )
@@ -232,6 +225,10 @@ class WithZstdDecompressorBase extends Config ((site, here, up) => {
 
 class WithHufSpeculationAmount(n: Int = 4) extends Config ((site, here, up) => {
   case HufDecompressDecompAtOnce => n
+})
+
+class EnableSnappyInMergedDecompressor extends Config ((site, here, up) => {
+  case NoSnappy => false
 })
 
 class WithZstdDecompressor4 extends Config (
@@ -246,6 +243,12 @@ class WithZstdDecompressor8 extends Config (
 
 class WithZstdDecompressor16 extends Config (
   new WithHufSpeculationAmount(16) ++
+  new WithZstdDecompressorBase
+)
+
+class WithMergedDecompressor16Spec extends Config (
+  new WithHufSpeculationAmount(16) ++
+  new EnableSnappyInMergedDecompressor ++
   new WithZstdDecompressorBase
 )
 
