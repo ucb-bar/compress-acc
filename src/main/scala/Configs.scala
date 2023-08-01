@@ -87,28 +87,6 @@ class WithZstdCompressorReducedAccuracy extends Config ((site, here, up) => {
   )
 })
 
-class WithZstdCompressorReducedAccuracy extends Config ((site, here, up) => {
-  case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case ZstdCompressorKey => Some(ZstdCompressorConfig(
-    queDepth = 4
-    ))
-  case HufCompressUnrollCnt => 2
-  case HufCompressDicBuilderProcessedStatBytesPerCycle => 2
-  case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 4
-  case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
-  case ZstdLiteralLengthMaxAccuracy => 7
-  case ZstdMatchLengthMaxAccuracy => 7
-  case ZstdOffsetMaxAccuracy => 6
-  case RemoveSnappyFromMergedAccelerator => true
-  case CompressAccelPrintfEnable => true
-  case BuildRoCC => Seq(
-    (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
-      zstd_compressor
-    }
-  )
-})
-
 class WithZstdCompressorHufUnroll2HufStat8FSEStat4ReducedAccuracy extends Config ((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
   case ZstdCompressorKey => Some(ZstdCompressorConfig(
