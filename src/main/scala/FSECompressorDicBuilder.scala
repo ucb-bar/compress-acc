@@ -148,13 +148,14 @@ class FSECompressorDicBuilder(
   val sSetllStep = 2.U
   val sSetProbaBase = 3.U
   val sSetNormalizeCountReg = 4.U
-  val sNormalizeCount = 5.U
-  val sBuildCTableSymbolStartPositions = 6.U
-  val sBuildCTableSpreadSymbols = 7.U
-  val sBuildCTableBuildTable = 8.U
-  val sBuildCTableSymbolTT = 9.U
-  val sWriteCTable = 10.U
-  val sLookup = 11.U
+  val sSetNormalizedCouterMaxIdx = 5.U
+  val sNormalizeCount = 6.U
+  val sBuildCTableSymbolStartPositions = 7.U
+  val sBuildCTableSpreadSymbols = 8.U
+  val sBuildCTableBuildTable = 9.U
+  val sBuildCTableSymbolTT = 10.U
+  val sWriteCTable = 11.U
+  val sLookup = 12.U
   val dicBuilderState = RegInit(0.U(4.W))
 
 
@@ -278,9 +279,11 @@ class FSECompressorDicBuilder(
 
   val ll_normalizedCounter = RegInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
   val ll_normalizedCounterMaxAdjusted = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
-  val ll_count_has_nbseq_1_as_value = ll_count.map { case count =>
-    count === ll_nbseq_1
-  }.reduceTree(_ || _)
+  val ll_count_eq_nbseq_1 = WireInit(VecInit(Seq.fill(maxSymbolLLPlus1)(false.B)))
+  for (i <- 0 until maxSymbolLLPlus1) {
+    ll_count_eq_nbseq_1(i) := (ll_count(i) === ll_nbseq_1)
+  }
+  val ll_count_has_nbseq_1_as_value = ll_count_eq_nbseq_1.reduceTree(_ || _)
   val ll_rle = ll_count_has_nbseq_1_as_value
 
   for (i <- 0 until maxSymbolLL + 1) {
@@ -289,15 +292,21 @@ class FSECompressorDicBuilder(
                                   ll_proba(i)))
   }
 
-  val ll_smallOrEqToLowThresholdCount = ll_count.map{ case count =>
-    ((count <= ll_lowThreshold) && (count > 0.U)).asUInt
-  }.reduceTree(_ +& _)
+  val ll_countSmallOrEqToLowThld = WireInit(VecInit(Seq.fill(maxSymbolLLPlus1)(0.U(16.W))))
+  for (i <- 0 until maxSymbolLLPlus1) {
+    val count = ll_count(i)
+    ll_countSmallOrEqToLowThld(i) := ((count <= ll_lowThreshold) && (count > 0.U)).asUInt
+  }
+  val ll_smallOrEqToLowThresholdCount = ll_countSmallOrEqToLowThld.reduceTree(_ +& _)
 
-  val ll_largerThanLowThresholdProbaSum = ll_count.zipWithIndex.map{ case (count, idx) =>
-    Mux((count === ll_nbseq_1) || (count === 0.U) || (count <= ll_lowThreshold),
+  val ll_largerThanLowThreshold = WireInit(VecInit(Seq.fill(maxSymbolLLPlus1)(0.U(16.W))))
+  for (i <- 0 until maxSymbolLLPlus1) {
+    val count = ll_count(i)
+    ll_largerThanLowThreshold(i) := Mux((count === ll_nbseq_1) || (count === 0.U) || (count <= ll_lowThreshold),
       0.U,
-      ll_proba(idx))
-  }.reduceTree(_ +& _)
+      ll_proba(i))
+  }
+  val ll_largerThanLowThresholdProbaSum = ll_largerThanLowThreshold.reduceTree(_ +& _)
 
   val ll_normalizedCounterMax = ll_normalizedCounter.reduceTree((a, b) => Mux(a > b, a, b))
 // val ll_normalizedCounterIdx = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
