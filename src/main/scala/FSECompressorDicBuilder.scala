@@ -305,9 +305,11 @@ class FSECompressorDicBuilder(
     ll_normalizedCounterIdx(i) := i.U
   }
 
-  val ll_normalizedCounterMaxIdx = ll_normalizedCounter.zip(ll_normalizedCounterIdx).reduce{ (x, y) =>
-    (Mux(x._1 < y._1, y._1, x._1), Mux(x._1 < y._1, y._2, x._2))
-  }._2
+// val ll_normalizedCounterMaxIdx = ll_normalizedCounter.zip(ll_normalizedCounterIdx).reduce{ (x, y) =>
+// (Mux(x._1 < y._1, y._1, x._1), Mux(x._1 < y._1, y._2, x._2))
+// }._2
+
+  val ll_normalizedCounterMaxIdx = ll_normalizedCounter.indexWhere ( x => x === ll_normalizedCounterMax )
 
   val ll_nxtStillToDistribute = (ll_still_to_distribute - ll_largerThanLowThresholdProbaSum - ll_smallOrEqToLowThresholdCount).asSInt
   val ll_negNxtStillToDistribute = (-1).S * ll_nxtStillToDistribute
