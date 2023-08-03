@@ -81,13 +81,16 @@ class ZstdMatchFinder(removeSnappy: Boolean)(implicit p: Parameters) extends Mod
   io.l2io.memloader_userif <> memloader.io.l2helperUser
   memloader.io.src_info <> io.src.compress_src_info
 
+  val memloader_output_buffer = Module(new MemLoaderOutputBuffer)
+  memloader_output_buffer.io.in_from_ml <> memloader.io.consumer
+
   val use_zstd = io.ALGORITHM === ZSTD.U
 
   val lz77hashmatcher = Module(new LZ77HashMatcher)
   lz77hashmatcher.io.write_snappy_header := !use_zstd
   lz77hashmatcher.io.MAX_OFFSET_ALLOWED := io.MAX_OFFSET_ALLOWED
   lz77hashmatcher.io.RUNTIME_HT_NUM_ENTRIES_LOG2 := io.RUNTIME_HT_NUM_ENTRIES_LOG2
-  lz77hashmatcher.io.memloader_in <> memloader.io.consumer
+  lz77hashmatcher.io.memloader_in <> memloader_output_buffer.io.out_to_consumer
   lz77hashmatcher.io.memloader_optional_hbsram_in <> memloader.io.optional_hbsram_write
   lz77hashmatcher.io.src_info <> io.src.compress_src_info2
 
