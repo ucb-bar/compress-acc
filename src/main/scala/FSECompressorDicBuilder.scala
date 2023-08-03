@@ -286,9 +286,11 @@ class FSECompressorDicBuilder(
 
   val ll_normalizedCounter = RegInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
   val ll_normalizedCounterMaxAdjusted = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
-  val ll_count_has_nbseq_1_as_value = ll_count.map{ case count =>
-    count === ll_nbseq_1
-  }.reduce(_ || _)
+  val ll_count_eq_nbseq_1 = WireInit(VecInit(Seq.fill(maxSymbolLLPlus1)(false.B)))
+  for (i <- 0 until maxSymbolLLPlus1) {
+    ll_count_eq_nbseq_1(i) := (ll_count(i) === ll_nbseq_1)
+  }
+  val ll_count_has_nbseq_1_as_value = ll_count_eq_nbseq_1.reduceTree(_ || _)
   val ll_rle = ll_count_has_nbseq_1_as_value
 
   for (i <- 0 until maxSymbolLL + 1) {
@@ -297,25 +299,35 @@ class FSECompressorDicBuilder(
                                   ll_proba(i)))
   }
 
-  val ll_smallOrEqToLowThresholdCount = ll_count.map{ case count =>
-    ((count <= ll_lowThreshold) && (count > 0.U)).asUInt
-  }.reduce(_ +& _)
+  val ll_countSmallOrEqToLowThld = WireInit(VecInit(Seq.fill(maxSymbolLLPlus1)(0.U(16.W))))
+  for (i <- 0 until maxSymbolLLPlus1) {
+    val count = ll_count(i)
+    ll_countSmallOrEqToLowThld(i) := ((count <= ll_lowThreshold) && (count > 0.U)).asUInt
+  }
+  val ll_smallOrEqToLowThresholdCount = ll_countSmallOrEqToLowThld.reduceTree(_ +& _)
 
-  val ll_largerThanLowThresholdProbaSum = ll_count.zipWithIndex.map{ case (count, idx) =>
-    Mux((count === ll_nbseq_1) || (count === 0.U) || (count <= ll_lowThreshold),
+  val ll_largerThanLowThreshold = WireInit(VecInit(Seq.fill(maxSymbolLLPlus1)(0.U(16.W))))
+  for (i <- 0 until maxSymbolLLPlus1) {
+    val count = ll_count(i)
+    ll_largerThanLowThreshold(i) := Mux((count === ll_nbseq_1) || (count === 0.U) || (count <= ll_lowThreshold),
       0.U,
-      ll_proba(idx))
-  }.reduce(_ +& _)
+      ll_proba(i))
+  }
+  val ll_largerThanLowThresholdProbaSum = ll_largerThanLowThreshold.reduceTree(_ +& _)
 
   val ll_normalizedCounterMax = ll_normalizedCounter.reduceTree((a, b) => Mux(a > b, a, b))
-  val ll_normalizedCounterIdx = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
-  for (i <- 0 until maxSymbolLL + 1) {
-    ll_normalizedCounterIdx(i) := i.U
-  }
+// val ll_normalizedCounterIdx = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(16.W))))
+// for (i <- 0 until maxSymbolLL + 1) {
+// ll_normalizedCounterIdx(i) := i.U
+// }
 
-  val ll_normalizedCounterMaxIdx = ll_normalizedCounter.zip(ll_normalizedCounterIdx).reduce{ (x, y) =>
-    (Mux(x._1 < y._1, y._1, x._1), Mux(x._1 < y._1, y._2, x._2))
-  }._2
+// val ll_normalizedCounterMaxIdx = ll_normalizedCounter.zip(ll_normalizedCounterIdx).reduce{ (x, y) =>
+// (Mux(x._1 < y._1, y._1, x._1), Mux(x._1 < y._1, y._2, x._2))
+// }._2
+
+  val ll_maxIdxIter = RegInit(0.U(16.W))
+  val ll_normalizedCounterMaxIdx = RegInit(0.U(16.W))
+// val ll_normalizedCounterMaxIdx = ll_normalizedCounter.indexWhere ( x => x === ll_normalizedCounterMax )
 
   val ll_nxtStillToDistribute = (ll_still_to_distribute - ll_largerThanLowThresholdProbaSum - ll_smallOrEqToLowThresholdCount).asSInt
   val ll_negNxtStillToDistribute = (-1).S * ll_nxtStillToDistribute
@@ -510,7 +522,12 @@ class FSECompressorDicBuilder(
     ll_max_symbol_value := 0.U
     ll_nbseq_1 := 0.U
 
+    ll_maxIdxIter := 0.U
+    ll_normalizedCounterMaxIdx := 0.U
+
     for (i <- 0 until maxSymbolLL + 1) {
+      ll_normalizedCounter(i) := 0.U
+      ll_proba_base(i) := 0.U
       ll_normalizedCounterReg(i) := 0.U
     }
 
@@ -657,7 +674,17 @@ class FSECompressorDicBuilder(
     }
 
     is (sSetNormalizeCountReg) {
-      dicBuilderState := sNormalizeCount
+      dicBuilderState := sSetNormalizedCouterMaxIdx
+    }
+
+    is (sSetNormalizedCouterMaxIdx) {
+      val cur = ll_normalizedCounter(ll_maxIdxIter)
+      when (cur === ll_normalizedCounterMax) {
+        ll_normalizedCounterMaxIdx := ll_maxIdxIter
+        dicBuilderState := sNormalizeCount
+      } .otherwise {
+        ll_maxIdxIter := ll_maxIdxIter + 1.U
+      }
     }
 
     is (sNormalizeCount) {
