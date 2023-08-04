@@ -408,9 +408,11 @@ class FSECompressorDicBuilder(
   val ll_highThresholdBeforeCumul = WireInit(0.U(32.W))
   ll_highThresholdBeforeCumul := ll_tableSize - 1.U
 
-  val ll_normCountEqsNegOne = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(8.W))))
+  val ll_normCountIdx = RegInit(0.U(log2Ceil(maxSymbolLL + 1).W))
+  val ll_normCountEqsNegOne = RegInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(8.W))))
   val ll_normCountEqsNegOneCumul = WireInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(8.W))))
-  val ll_normCountEqsNegOneSum = ll_normCountEqsNegOne.reduce(_ +& _)
+  val ll_normCountEqsNegOneCumulReg = RegInit(VecInit(Seq.fill(maxSymbolLL + 1)(0.U(8.W))))
+  val ll_normCountEqsNegOneSum = ll_normCountEqsNegOne.reduceTree(_ +& _)
 
   val ll_highThresholdAfterCumul = RegInit(0.U(32.W))
 
@@ -745,27 +747,54 @@ class FSECompressorDicBuilder(
 
     is (sBuildCTableSymbolStartPositions) {
       ll_normCountEqsNegOneCumul(0) := ll_normCountEqsNegOne(0)
-      for (i <- 1 until maxSymbolLL + 1) {
-        when (ll_normalizedCounterReg(i-1) === neg_one_uint16.U) {
-          ll_normCountEqsNegOne(i-1) := 1.U
-          ll_cumul(i) := ll_cumul(i-1) + 1.U
-          ll_tableSymbol(ll_highThresholdBeforeCumul - ll_normCountEqsNegOneCumul(i-1) + 1.U) := (i-1).U
-        } .otherwise {
-          ll_cumul(i) := ll_cumul(i-1) + ll_normalizedCounterReg(i-1)
+      ll_normCountEqsNegOneCumulReg(0) := ll_normCountEqsNegOne(0)
+
+      when (ll_normCountIdx === (maxSymbolLL + 1).U) {
+        ll_cumulReg(ll_maxSV1) := ll_tableSize + 1.U
+        ll_highThresholdAfterCumul := ll_highThresholdBeforeCumul - ll_normCountEqsNegOneSum
+
+        dicBuilderState := sBuildCTableSpreadSymbols
+      } .elsewhen (ll_normCountIdx === 0.U ){
+        ll_normCountIdx := ll_normCountIdx + 1.U
+      } .otherwise {
+        for (i <- 1 until maxSymbolLL + 1) {
+          ll_normCountIdx := ll_normCountIdx + 1.U
+          when (i.U === ll_normCountIdx) {
+            when (ll_normalizedCounterReg(i-1) === neg_one_uint16.U) {
+              ll_normCountEqsNegOne(i-1) := 1.U
+              ll_cumulReg(i) := ll_cumulReg(i-1) + 1.U
+              ll_tableSymbol(ll_highThresholdBeforeCumul - ll_normCountEqsNegOneCumul(i-1) + 1.U) := (i-1).U
+            } .otherwise {
+              ll_cumulReg(i) := ll_cumulReg(i-1) + ll_normalizedCounterReg(i-1)
+            }
+            when (i.U >= 2.U) {
+              ll_normCountEqsNegOneCumul(i-1) := ll_normCountEqsNegOneCumulReg(i-2) + ll_normCountEqsNegOne(i-1)
+              ll_normCountEqsNegOneCumulReg(i-1) := ll_normCountEqsNegOneCumul(i-1)
+            }
+          }
         }
-
-        ll_normCountEqsNegOneCumul(i) := ll_normCountEqsNegOneCumul(i-1) + ll_normCountEqsNegOne(i)
       }
+// for (i <- 1 until maxSymbolLL + 1) {
+// when (ll_normalizedCounterReg(i-1) === neg_one_uint16.U) {
+// ll_normCountEqsNegOne(i-1) := 1.U
+// ll_cumul(i) := ll_cumul(i-1) + 1.U
+// ll_tableSymbol(ll_highThresholdBeforeCumul - ll_normCountEqsNegOneCumul(i-1) + 1.U) := (i-1).U
+// } .otherwise {
+// ll_cumul(i) := ll_cumul(i-1) + ll_normalizedCounterReg(i-1)
+// }
 
-      ll_cumul(ll_maxSV1) := ll_tableSize + 1.U
-      ll_highThresholdAfterCumul := ll_highThresholdBeforeCumul - ll_normCountEqsNegOneSum
+// ll_normCountEqsNegOneCumul(i) := ll_normCountEqsNegOneCumul(i-1) + ll_normCountEqsNegOne(i)
+// }
 
-      for (i <- 0 until maxSymbolLL + 1) {
-        ll_cumulReg(i) := ll_cumul(i)
-      }
+// ll_cumul(ll_maxSV1) := ll_tableSize + 1.U
+// ll_highThresholdAfterCumul := ll_highThresholdBeforeCumul - ll_normCountEqsNegOneSum
 
-      // Takes only one cycle
-      dicBuilderState := sBuildCTableSpreadSymbols
+// for (i <- 0 until maxSymbolLL + 1) {
+// ll_cumulReg(i) := ll_cumul(i)
+// }
+
+// Takes only one cycle
+// dicBuilderState := sBuildCTableSpreadSymbols
     }
 
     is (sBuildCTableSpreadSymbols) {
