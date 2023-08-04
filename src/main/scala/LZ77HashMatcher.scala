@@ -198,7 +198,7 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
   // or fresh
   val want_registered_hb_data = RegInit(false.B)
 
-  val registered_hb_data = RegEnable(history_buffer.io_read_resp_out.bits.data, !want_registered_hb_data)
+  val registered_hb_data = RegEnable(history_buffer.io.read_resp_out.bits.data, !want_registered_hb_data)
 
   val hist_as_bytevec = Wire(Vec(32, UInt(8.W)))
   val memloader_as_bytevec = Wire(Vec(32, UInt(8.W)))
