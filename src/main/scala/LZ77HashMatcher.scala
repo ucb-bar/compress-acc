@@ -193,12 +193,23 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
 
   val compressorState = RegInit(sWriteUncompressedSizeVarint)
 
+
+  // select whether we should be using registered result from hb
+  // or fresh
+  val want_registered_hb_data = RegInit(false.B)
+
+  val registered_hb_data = RegEnable(history_buffer.io_read_resp_out.bits.data, !want_registered_hb_data)
+
   val hist_as_bytevec = Wire(Vec(32, UInt(8.W)))
   val memloader_as_bytevec = Wire(Vec(32, UInt(8.W)))
   val comparison_as_boolvec = Wire(Vec(32, Bool()))
 
   for (elemno <- 0 until 32) {
-    hist_as_bytevec(elemno) := history_buffer.io.read_resp_out.bits.data((elemno << 3) + 7, (elemno << 3))
+    when (want_registered_hb_data) {
+      hist_as_bytevec(elemno) := registered_hb_data((elemno << 3) + 7, (elemno << 3))
+    } .otherwise {
+      hist_as_bytevec(elemno) := history_buffer.io.read_resp_out.bits.data((elemno << 3) + 7, (elemno << 3))
+    }
     memloader_as_bytevec(elemno) := io.memloader_in.output_data((elemno << 3) + 7, (elemno << 3))
     comparison_as_boolvec(elemno) := (hist_as_bytevec(elemno) === memloader_as_bytevec(elemno))
   }
@@ -398,18 +409,18 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
     is (sHTtoHistPipeStage) {
         history_buffer.io.read_req_in.valid := true.B
         compressorState := sHistoryResultAvailable
+        want_registered_hb_data := false.B
     }
     is (sHistoryResultAvailable) {
+
       // by default, i.e. if stalled out, need to keep feeding history
       // buffer the same input:
 
-      when (io.memloader_in.output_valid && io.memwrites_out.ready) {
-        // OPT_LINE_1: THIS LINE USED TO BE AT THE MARKER LABELED OPT_LINE_1 below. IT IS MOVED OUT FOR CRITICAL PATH OPT.
-        // ...
-        history_buffer.io.read_req_in.bits.offset := in_progress_offset - io.memloader_in.available_output_bytes
-      } .otherwise {
-        history_buffer.io.read_req_in.bits.offset := in_progress_offset
-      }
+      // if you've made it here, assume will fail to make it further
+      // override in the case below where we do make it further
+      want_registered_hb_data := true.B
+
+      history_buffer.io.read_req_in.bits.offset := in_progress_offset - 32.U //io.memloader_in.available_output_bytes
       history_buffer.io.read_req_in.valid := true.B
 
 
@@ -438,19 +449,21 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
         when (!io.memloader_in.output_last_chunk) {
           // this is not necessarily the end of the copy and it isn't the end
           // of the buffer overall. just advance stuff and move on
-          io.memloader_in.output_ready := io.memwrites_out.ready
-          io.memloader_in.user_consumed_bytes := io.memloader_in.available_output_bytes
+          //
+          // always wait for 32B of checking
+          val memloader_has_32 = io.memloader_in.available_output_bytes === 32.U
+          io.memloader_in.output_ready := io.memwrites_out.ready && memloader_has_32
+          io.memloader_in.user_consumed_bytes := 32.U //io.memloader_in.available_output_bytes
 
-          when (io.memloader_in.output_valid && io.memwrites_out.ready) {
-              history_buffer.io.read_advance_ptr.bits.advance_bytes := io.memloader_in.available_output_bytes
+          when (io.memloader_in.output_valid && io.memwrites_out.ready && memloader_has_32) {
+              want_registered_hb_data := false.B
+              history_buffer.io.read_advance_ptr.bits.advance_bytes := 32.U //io.memloader_in.available_output_bytes
               history_buffer.io.read_advance_ptr.valid := true.B
 
-              // OPT_LINE_1: THE LINE THAT USED TO BE HERE IS MOVED OUT FOR CRITICAL PATH OPT.
-              // ...
               history_buffer.io.read_req_in.valid := true.B
 
-              in_progress_copy_len := in_progress_copy_len + io.memloader_in.available_output_bytes
-              absolute_address_base := absolute_address_base + io.memloader_in.available_output_bytes
+              in_progress_copy_len := in_progress_copy_len + 32.U //io.memloader_in.available_output_bytes
+              absolute_address_base := absolute_address_base + 32.U //io.memloader_in.available_output_bytes
           }
         } .otherwise {
 

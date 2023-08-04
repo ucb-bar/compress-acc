@@ -142,9 +142,9 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
   load_info_queue.io.deq.ready := resp_fire_noqueues.fire(load_info_queue.io.deq.valid, all_queues_ready)
   io.l2helperUser.resp.ready := resp_fire_noqueues.fire(io.l2helperUser.resp.valid, all_queues_ready)
 
-  io.optional_hbsram_write.valid := resp_fire_noqueues.fire && all_queues_ready
-  io.optional_hbsram_write.bits.data := memresp_bits_shifted
-  io.optional_hbsram_write.bits.valid_bytes := len_to_write
+  io.optional_hbsram_write.valid := RegNext(resp_fire_noqueues.fire && all_queues_ready)
+  io.optional_hbsram_write.bits.data := RegNext(memresp_bits_shifted)
+  io.optional_hbsram_write.bits.valid_bytes := RegNext(len_to_write)
 
   val resp_fire_allqueues = resp_fire_noqueues.fire && all_queues_ready
   when (resp_fire_allqueues) {

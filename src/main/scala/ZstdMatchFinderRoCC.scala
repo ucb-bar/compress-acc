@@ -49,13 +49,10 @@ with MemoryOpConstants {
   val memloader = Module(new LZ77HashMatcherMemLoader)
   outer.mem_comp_ireader.module.io.userif <> memloader.io.l2helperUser
   memloader.io.src_info <> cmd_router.io.compress_src_info
-  val memloader_output_buffer = Module(new MemLoaderOutputBuffer)
-  memloader_output_buffer.io.in_from_ml <> memloader.io.consumer
-
 
   val lz77hashmatcher = Module(new LZ77HashMatcher)
   lz77hashmatcher.io.MAX_OFFSET_ALLOWED := cmd_router.io.MAX_OFFSET_ALLOWED
-  lz77hashmatcher.io.memloader_in <> memloader_output_buffer.io.out_to_consumer
+  lz77hashmatcher.io.memloader_in <> memloader.io.consumer
   lz77hashmatcher.io.memloader_optional_hbsram_in <> memloader.io.optional_hbsram_write
   lz77hashmatcher.io.src_info <> cmd_router.io.compress_src_info2
 

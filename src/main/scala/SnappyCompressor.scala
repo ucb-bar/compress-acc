@@ -54,9 +54,6 @@ with MemoryOpConstants {
 
 
   val memloader = Module(new LZ77HashMatcherMemLoader)
-  val memloader_output_buffer = Module(new MemLoaderOutputBuffer)
-  memloader_output_buffer.io.in_from_ml <> memloader.io.consumer
-
   outer.mem_comp_ireader.module.io.userif <> memloader.io.l2helperUser
   memloader.io.src_info <> cmd_router.io.compress_src_info
 
@@ -65,7 +62,7 @@ with MemoryOpConstants {
   lz77hashmatcher.io.RUNTIME_HT_NUM_ENTRIES_LOG2 := cmd_router.io.RUNTIME_HT_NUM_ENTRIES_LOG2
   lz77hashmatcher.io.write_snappy_header := true.B
 
-  lz77hashmatcher.io.memloader_in <> memloader_output_buffer.io.out_to_consumer
+  lz77hashmatcher.io.memloader_in <> memloader.io.consumer
   lz77hashmatcher.io.memloader_optional_hbsram_in <> memloader.io.optional_hbsram_write
   lz77hashmatcher.io.src_info <> cmd_router.io.compress_src_info2
 
