@@ -35,16 +35,17 @@ class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
 
   val STATE_COLLECT_STATS = 0.U
   val STATE_PROCESS_STATS = 1.U
-  val STATE_NORM_CNT = 2.U
-  val STATE_SORT_CNT = 3.U
-  val STATE_BUILD_TREE = 4.U
-  val STATE_UPDATE_NBBITS = 5.U
-  val STATE_UPDATE_NBBIT_PER_RANK = 6.U
-  val STATE_UPDATE_VAL_PER_RANK = 7.U
-  val STATE_DIC_SET_VALUE = 8.U
-  val STATE_WRITE_DIC = 9.U
-  val STATE_LOOKUP = 10.U
-  val STATE_NORMALIZE_FAILED = 11.U
+  val STATE_PMIN_RECIP = 2.U
+  val STATE_NORM_CNT = 3.U
+  val STATE_SORT_CNT = 4.U
+  val STATE_BUILD_TREE = 5.U
+  val STATE_UPDATE_NBBITS = 6.U
+  val STATE_UPDATE_NBBIT_PER_RANK = 7.U
+  val STATE_UPDATE_VAL_PER_RANK = 8.U
+  val STATE_DIC_SET_VALUE = 9.U
+  val STATE_WRITE_DIC = 10.U
+  val STATE_LOOKUP = 11.U
+  val STATE_NORMALIZE_FAILED = 12.U
   val state = RegInit(0.U(4.W))
 
   val symbol_stats = RegInit(VecInit(Seq.fill(HUF_MAX_SYMBOLS1)(0.U(32.W))))
@@ -130,9 +131,20 @@ class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
     cnt_min := Mux((cnt_min > cur_stat_val) && (cur_stat_val > 0.U), cur_stat_val, cnt_min)
   }
 
-  val pmin_reciprocol = Wire(UInt(32.W))
+
+  val divider = Module(new PipelinedDivider(32))
+  divider.io.start := false.B
+  divider.io.A := cnt_tot
+  divider.io.B := cnt_min
+
+  when (state === STATE_PMIN_RECIP) {
+    divider.io.start := true.B
+  }
+
+  val pmin_reciprocol = Reg(UInt(32.W))
   val pmin_reciprocol_log2 = Wire(UInt(32.W))
-  pmin_reciprocol := cnt_tot / cnt_min
+  pmin_reciprocol := Mux(divider.io.done, divider.io.Q, pmin_reciprocol)
+// pmin_reciprocol := cnt_tot / cnt_min
   pmin_reciprocol_log2 := (31.U - PriorityEncoder(Reverse(pmin_reciprocol))) + 1.U
 
   val renormalize = RegInit(false.B)
@@ -585,7 +597,13 @@ class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
 
     is (STATE_PROCESS_STATS) {
       when (processed_idx === HUF_MAX_SYMBOLS1.U - 1.U) {
-        state := STATE_NORM_CNT
+        state := STATE_PMIN_RECIP
+      }
+    }
+
+    is (STATE_PMIN_RECIP) {
+      when (divider.io.done) {
+        state := STATE_NORM_COUNT
       }
     }
 
