@@ -603,7 +603,7 @@ class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
 
     is (STATE_PMIN_RECIP) {
       when (divider.io.done) {
-        state := STATE_NORM_COUNT
+        state := STATE_NORM_CNT
       }
     }
 
