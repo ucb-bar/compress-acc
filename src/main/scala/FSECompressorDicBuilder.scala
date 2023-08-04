@@ -767,10 +767,12 @@ class FSECompressorDicBuilder(
             } .otherwise {
               ll_cumulReg(i) := ll_cumulReg(i-1) + ll_normalizedCounterReg(i-1)
             }
-            when (i.U >= 2.U) {
-              ll_normCountEqsNegOneCumul(i-1) := ll_normCountEqsNegOneCumulReg(i-2) + ll_normCountEqsNegOne(i-1)
-              ll_normCountEqsNegOneCumulReg(i-1) := ll_normCountEqsNegOneCumul(i-1)
-            }
+          }
+        }
+        for (i <- 2 until maxSymbolLL + 1) {
+          when (i.U === ll_normCountIdx) {
+            ll_normCountEqsNegOneCumul(i-1) := ll_normCountEqsNegOneCumulReg(i-2) + ll_normCountEqsNegOne(i-1)
+            ll_normCountEqsNegOneCumulReg(i-1) := ll_normCountEqsNegOneCumul(i-1)
           }
         }
       }
