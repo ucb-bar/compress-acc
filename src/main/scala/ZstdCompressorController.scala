@@ -196,14 +196,18 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
   val blocks_left_to_send = consumed_src_bytes < io.src_info.bits.isize
 
   val min_match_length = cctx.bits.min_match_length
-  val max_sequences = block_bytes / min_match_length
+// val max_sequences = block_bytes / min_match_length
+  val max_sequences = block_bytes >> 2
 
   val seq_buff_free_vec = RegInit(VecInit(Seq.fill(256)(true.B)))
   val seq_buff_free_vec_cat = Cat(seq_buff_free_vec.reverse)
   val seq_buff_idx = RegInit(0.U(64.W))
   val seq_buff_base_addr = io.buff_info.seq.bits.ip
-  val seq_buff_chunk_bytes = max_sequences * ZSTD_SEQUENCE_COMMAND_BYTES.U + 8.U // add extra 8B padding for safety
-  val seq_buff_chunk_cnt = io.buff_info.seq.bits.isize / seq_buff_chunk_bytes
+  val seq_buff_chunk_bytes = Wire(UInt(32.W))
+  seq_buff_chunk_bytes := max_sequences * ZSTD_SEQUENCE_COMMAND_BYTES.U + 8.U // add extra 8B padding for safety
+  val seq_buff_chunk_bytes_max_bitpos = 32.U - PriorityEncoder(Reverse(seq_buff_chunk_bytes))
+// val seq_buff_chunk_cnt = io.buff_info.seq.bits.isize / seq_buff_chunk_bytes
+  val seq_buff_chunk_cnt = io.buff_info.seq.bits.isize >> seq_buff_chunk_bytes_max_bitpos
   val seq_buff_offset = seq_buff_chunk_bytes * seq_buff_idx
   val seq_buff_start_addr = seq_buff_base_addr + seq_buff_offset
 
@@ -211,8 +215,11 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
   val lit_buff_free_vec_cat = Cat(lit_buff_free_vec.reverse)
   val lit_buff_idx = RegInit(0.U(64.W))
   val lit_buff_base_addr = io.buff_info.lit.bits.ip
-  val lit_buff_chunk_bytes = block_bytes + 8.U
-  val lit_buff_chunk_cnt = io.buff_info.lit.bits.isize / lit_buff_chunk_bytes
+  val lit_buff_chunk_bytes = Wire(UInt(32.W))
+  lit_buff_chunk_bytes := block_bytes + 8.U
+  val lit_buff_chunk_bytes_max_bitpos = 32.U - PriorityEncoder(Reverse(lit_buff_chunk_bytes))
+// val lit_buff_chunk_cnt = io.buff_info.lit.bits.isize / lit_buff_chunk_bytes
+  val lit_buff_chunk_cnt = io.buff_info.lit.bits.isize >> lit_buff_chunk_bytes_max_bitpos
   val lit_buff_offset = lit_buff_chunk_bytes * lit_buff_idx
   val lit_buff_start_addr = lit_buff_base_addr + lit_buff_offset
 
