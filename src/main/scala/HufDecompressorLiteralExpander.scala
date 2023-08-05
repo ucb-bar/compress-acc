@@ -318,42 +318,72 @@ class HufDecompressorLiteralExpander(val decomp_at_once: Int, val cmd_que_depth:
   numbit_cat := Cat(dic_entry_q.map(_.deq.bits.numbit).reverse)
 
   val numbit_cumul = WireInit(VecInit(Seq.fill(decomp_at_once+1)(0.U(numbit_cumul_bits_log2.W))))
+  val valid_cumul = WireInit(VecInit(Seq.fill(decomp_at_once+1)(0.U(1.W))))
   numbit_cumul(0) := dic_entry_q(0).deq.bits.numbit
+  valid_cumul(0) := dic_entry_q(0).deq.valid.asUInt // Should be true for all cases
+  val dic_to_deq = WireInit(VecInit(Seq.fill(SBUS_BYTES)(0.U(decomp_at_once_log2.W))))
+  val dic_to_deq_valid = WireInit(VecInit(Seq.fill(SBUS_BYTES)(false.B)))
+  for (i <- 0 until SBUS_BYTES) {
+    dic_to_deq(i) := 0.U
+    dic_to_deq_valid(i) := false.B
+  }
+  val write_start_idx = RegInit(0.U(SBUS_BYTES_LOG2.W))
   for (i <- 1 until decomp_at_once + 1) {
     when (numbit_cumul(i-1) < decomp_at_once.U && (i.U === numbit_cumul(i-1))) {
-      val cur_numbit = (numbit_cat >> (numbit_cumul(i-1) * 8.U)) & byte_mask
-      numbit_cumul(i) := numbit_cumul(i-1) + cur_numbit
+      //val cur_numbit = (numbit_cat >> (numbit_cumul(i-1) * 8.U)) & byte_mask
+      numbit_cumul(i) := numbit_cumul(i-1) + dic_entry_q(i).deq.bits.numbit
+      valid_cumul(i) := valid_cumul(i-1) + dic_entry_q(i).deq.valid.asUInt
+
+      when(dic_entry_q(i).deq.valid){
+        val idx_wide = (valid_cumul(i-1)) +& write_start_idx
+        val idx_wrap = idx_wide % SBUS_BYTES.U
+        dic_to_deq(idx_wrap) := i.U
+        dic_to_deq_valid(idx_wrap) := true.B
+      }
     } .otherwise {
       numbit_cumul(i) := numbit_cumul(i-1)
+      valid_cumul(i) := valid_cumul(i-1)
     }
   }
 
   val valid_cat = Wire(UInt(decomp_at_once.W))
   valid_cat := Cat(dic_entry_q.map(_.deq.valid.asUInt).reverse)
 
+  // TODO: If the fix is successful, remove speculate_success
   val speculate_success = WireInit(VecInit(Seq.fill(decomp_at_once)(0.U(1.W))))
   speculate_success(0) := dic_entry_q(0).deq.valid.asUInt
   for (i <- 0 until decomp_at_once) {
     when (numbit_cumul(i) < insert_end_idx_q.deq.bits) { 
-      speculate_success(numbit_cumul(i)) := (valid_cat >> numbit_cumul(i)) & 1.U
+      //speculate_success(numbit_cumul(i)) := (valid_cat >> numbit_cumul(i)) & 1.U
+      speculate_success(numbit_cumul(i)) := dic_entry_q(numbit_cumul(i)).deq.valid.asUInt
     }
   }
   dontTouch(speculate_success)
 
-  val speculate_success_cnt = speculate_success.reduce(_ +& _)
+  // TODO: Potential warning
+  // Suppose the bit positions where speculation should happen is 0, 5, 9, 13.
+  // If dic_entry_q[5].valid is off, decomp_symbol_q[9].enq.valid should be off
+  // even if dic_entry_q[9].valid is on. This possibility is not considered.
+  // However, the code passed all the tests using HyperCompressBench.
+  val speculate_success_cnt = valid_cumul(decomp_at_once-1) //speculate_success.reduce(_ +& _)
+  /*
   val speculate_success_insert_idx = WireInit(VecInit(Seq.fill(decomp_at_once)(0.U(decomp_at_once_log2.W))))
   speculate_success_insert_idx(0) := speculate_success(0)
   for (i <- 1 until decomp_at_once) {
     speculate_success_insert_idx(i) := speculate_success_insert_idx(i-1) + speculate_success(i)
   }
-  dontTouch(speculate_success_cnt)
   dontTouch(speculate_success_insert_idx)
+  */
+  dontTouch(speculate_success_cnt)
+  
 
   val valid_numbits_consumed = Wire(UInt(MAX_NUMBITS_AT_ONCE_LOG2.W))
+  valid_numbits_consumed := numbit_cumul(decomp_at_once-1)
+  /*
   valid_numbits_consumed := dic_entry_q.zip(speculate_success).map { case(entry, success) =>
     Mux(entry.deq.valid && (success > 0.U), entry.deq.bits.numbit, 0.U)
   }.reduce (_ +& _)
-
+  */
   val MAX_NUMBITS_AT_ONCE_LOG2_P1 = MAX_NUMBITS_AT_ONCE_LOG2 + 1
   val zero_extend_unsigned = 0.U(MAX_NUMBITS_AT_ONCE_LOG2_P1.W)
 
@@ -375,7 +405,7 @@ class HufDecompressorLiteralExpander(val decomp_at_once: Int, val cmd_que_depth:
   dontTouch(bit_offset)
 
   // From decomp_symbol_q
-  val write_start_idx = RegInit(0.U(SBUS_BYTES_LOG2.W))
+  //val write_start_idx = RegInit(0.U(SBUS_BYTES_LOG2.W))
   val write_len = speculate_success_cnt
   val write_end_idx_wide = write_start_idx +& speculate_success_cnt
   val write_end_idx_end = write_end_idx_wide % SBUS_BYTES.U
@@ -390,15 +420,7 @@ class HufDecompressorLiteralExpander(val decomp_at_once: Int, val cmd_que_depth:
   when (dic_entry_all_fire) {
     write_start_idx := write_end_idx_end
   }
-
-
-  val dic_to_deq = WireInit(VecInit(Seq.fill(SBUS_BYTES)(0.U(decomp_at_once_log2.W))))
-  val dic_to_deq_valid = WireInit(VecInit(Seq.fill(SBUS_BYTES)(false.B)))
-  for (i <- 0 until SBUS_BYTES) {
-    dic_to_deq(i) := 0.U
-    dic_to_deq_valid(i) := false.B
-  }
-
+/*
   for (i <- 0 until decomp_at_once) {
     when (speculate_success(i) > 0.U) {
       val idx_wide = (speculate_success_insert_idx(i) -& 1.U) +& write_start_idx
@@ -407,12 +429,7 @@ class HufDecompressorLiteralExpander(val decomp_at_once: Int, val cmd_que_depth:
       dic_to_deq_valid(idx_wrap) := true.B
     }
   }
-
-  val decomp_symbol = WireInit(VecInit(Seq.fill(decomp_at_once)(0.U(8.W))))
-  for (i <- 0 until decomp_at_once) {
-    decomp_symbol(i) := dic_entry_q(i).deq.bits.symbol
-  }
-
+*/
   for (i <- 0 until SBUS_BYTES) {
     decomp_symbol_q(i).enq.valid := false.B
     decomp_symbol_q(i).enq.bits := 0.U
@@ -423,6 +440,11 @@ class HufDecompressorLiteralExpander(val decomp_at_once: Int, val cmd_que_depth:
       decomp_symbol_q(i).enq.valid := dic_to_deq_valid(i)
       decomp_symbol_q(i).enq.bits := decomp_symbol(dic_to_deq(i))
     }
+  }
+
+  val decomp_symbol = WireInit(VecInit(Seq.fill(decomp_at_once)(0.U(8.W))))
+  for (i <- 0 until decomp_at_once) {
+    decomp_symbol(i) := dic_entry_q(i).deq.bits.symbol
   }
 
   val valid_decomp_symbol_cnt = decomp_symbol_q.map(_.deq.valid.asUInt).reduce(_ +& _)
