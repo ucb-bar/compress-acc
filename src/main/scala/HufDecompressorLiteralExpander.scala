@@ -430,6 +430,12 @@ class HufDecompressorLiteralExpander(val decomp_at_once: Int, val cmd_que_depth:
     }
   }
 */
+
+  val decomp_symbol = WireInit(VecInit(Seq.fill(decomp_at_once)(0.U(8.W))))
+  for (i <- 0 until decomp_at_once) {
+    decomp_symbol(i) := dic_entry_q(i).deq.bits.symbol
+  }
+
   for (i <- 0 until SBUS_BYTES) {
     decomp_symbol_q(i).enq.valid := false.B
     decomp_symbol_q(i).enq.bits := 0.U
@@ -440,11 +446,6 @@ class HufDecompressorLiteralExpander(val decomp_at_once: Int, val cmd_que_depth:
       decomp_symbol_q(i).enq.valid := dic_to_deq_valid(i)
       decomp_symbol_q(i).enq.bits := decomp_symbol(dic_to_deq(i))
     }
-  }
-
-  val decomp_symbol = WireInit(VecInit(Seq.fill(decomp_at_once)(0.U(8.W))))
-  for (i <- 0 until decomp_at_once) {
-    decomp_symbol(i) := dic_entry_q(i).deq.bits.symbol
   }
 
   val valid_decomp_symbol_cnt = decomp_symbol_q.map(_.deq.valid.asUInt).reduce(_ +& _)
