@@ -32,7 +32,7 @@ class HashTableWriteRequest extends Bundle {
   val absolute_addr_input_val = UInt(64.W)
 }
 
-class HashTableBasic(numEntriesLog2HW: Int = 14)(implicit p: Parameters) extends Module {
+class HashTableBasic(numEntriesLog2HW: Int = 9)(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
     val read_req = (new HashTableReadRequest).flip
     val read_resp = (new HashTableReadResult)

@@ -72,7 +72,7 @@ class SnappyDecompressorCommandRouter()(implicit p: Parameters) extends Module {
     current_funct === FUNCT_SET_ONCHIP_HIST
   )
 
-  val onChipHistLenConfig = RegInit((64*1024).U(32.W))
+  val onChipHistLenConfig = RegInit((64*64).U(32.W))
   when (set_onchip_hist_fire.fire()) {
     CompressAccelLogger.logInfo("Updating onChipHistLenConfig to: %d\n", io.rocc_in.bits.rs1)
     onChipHistLenConfig := io.rocc_in.bits.rs1
