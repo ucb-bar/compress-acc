@@ -458,7 +458,7 @@ class ZstdBlockDecompressor(zstdTop: ZstdDecompressor, cmd_que_depth: Int)
   
   io.l2_fse_memhelpers.read_histlookup_userif <> seqExecHistoryLookup.io.l2helperUser
 
-  val seqExecWriter = Module(new ZstdSeqExecWriterSRAM32(65536))
+  val seqExecWriter = Module(new ZstdSeqExecWriterSRAM32(4096))
   io.l2_fse_memhelpers.write_seqexec_userif <> seqExecWriter.io.l2helperUser
   ////////////////////////////////////////////////////////////////////////////
   // Raw/RLE decompressor

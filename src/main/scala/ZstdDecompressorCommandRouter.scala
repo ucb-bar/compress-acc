@@ -77,7 +77,7 @@ class ZstdDecompressorCommandRouter(val cmd_que_depth: Int)(implicit p: Paramete
                                     cur_funct === FUNCT_SFENCE)
   io.sfence_out := sfence_fire.fire
 
-  val MAX_OFFSET_ALLOWED = RegInit((64 * 1024).U(64.W))
+  val MAX_OFFSET_ALLOWED = RegInit((4 * 1024).U(64.W))
   io.MAX_OFFSET_ALLOWED := MAX_OFFSET_ALLOWED
 
   val max_offset_allowed_fire = DecoupledHelper(
