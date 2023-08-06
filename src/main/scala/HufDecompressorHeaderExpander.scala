@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
+// import freechips.rocketchip.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig, HellaCacheArbiter}
 import freechips.rocketchip.util.DecoupledHelper
@@ -43,8 +44,8 @@ extends Bundle {
   // For literal expander
   val literal_src_info = Decoupled(new StreamInfo)
   val literal_cmd = Decoupled(new HufDecompressLiteralExpanderCommand)
-  val lookup_idx = Vec(decomp_at_once, Flipped(Decoupled(new HufDecompressorLookupIdx)))
-  val dic_entry = Vec(decomp_at_once, Decoupled(new HufDecompressorDicEntry))
+  val lookup_idx = Vec(decomp_at_once-3, Flipped(Decoupled(new HufDecompressorLookupIdx)))
+  val dic_entry = Vec(decomp_at_once-3, Decoupled(new HufDecompressorDicEntry))
   val literal_expander_done = Flipped(Decoupled(Bool()))
 
   // For writer
@@ -221,10 +222,10 @@ class HufDecompressorHeaderExpander(val decomp_at_once: Int, val cmd_que_depth: 
   num_symbols_q.enq <> io.num_symbols
   num_symbols_q.deq.ready := false.B
 
-  val lookup_idx_q = Seq.fill(decomp_at_once)(Module(new Queue(new HufDecompressorLookupIdx, cmd_que_depth)).io)
-  val dic_entry_q = Seq.fill(decomp_at_once)(Module(new Queue(new HufDecompressorDicEntry, cmd_que_depth)).io)
+  val lookup_idx_q = Seq.fill(decomp_at_once-3)(Module(new Queue(new HufDecompressorLookupIdx, cmd_que_depth)).io)
+  val dic_entry_q = Seq.fill(decomp_at_once-3)(Module(new Queue(new HufDecompressorDicEntry, cmd_que_depth)).io)
 
-  for (i <- 0 until decomp_at_once) {
+  for (i <- 0 until decomp_at_once-3) {
     lookup_idx_q(i).enq <> io.lookup_idx(i)
     io.dic_entry(i) <> dic_entry_q(i).deq
 
@@ -736,7 +737,7 @@ class HufDecompressorHeaderExpander(val decomp_at_once: Int, val cmd_que_depth: 
       }
 
       // FIXME : Too much resource utilization here!!!!!
-      for (i <- 0 until decomp_at_once) {
+      for (i <- 0 until decomp_at_once-3) {
         val lookup_idx = lookup_idx_q(i).deq.bits.idx
         val lookup_fire = DecoupledHelper(lookup_idx_q(i).deq.valid, dic_entry_q(i).enq.ready)
 
@@ -746,6 +747,11 @@ class HufDecompressorHeaderExpander(val decomp_at_once: Int, val cmd_que_depth: 
           dic_entry_q(i).enq.bits.symbol := symbol_table(lookup_idx)
           dic_entry_q(i).enq.bits.numbit := numbit_table(lookup_idx)
         }
+        // TODO: AREA FIX
+        // In LiteralExpander, if i is in {1,2,3} and lookup_idx_q(i) is valid,
+        // invalidate everything from i (only 0 is valid) and adjust the bits_consumed to i.
+        // Remember that to actually reduce the circuit, i should be until (decomp_at_once-3).
+        // In other words: i is actually i+3 after i==0.
       }
     }
 

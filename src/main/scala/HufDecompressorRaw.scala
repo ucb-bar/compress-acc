@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
+// import freechips.rocketchip.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig, HellaCacheArbiter}
 import freechips.rocketchip.util.DecoupledHelper
@@ -76,7 +77,7 @@ class HufDecompressorRaw(zstdTop: ZstdDecompressor, cmd_que_depth: Int)(implicit
   literal_expander.io.literal_cmd <> header_expander.io.literal_cmd
   literal_expander.io.literal_src_info_in <> header_expander.io.literal_src_info
 
-  for (i <- 0 until decomp_at_once) {
+  for (i <- 0 until decomp_at_once-3) {
     header_expander.io.lookup_idx(i) <> literal_expander.io.lookup_idx(i)
     literal_expander.io.dic_entry(i) <> header_expander.io.dic_entry(i)
   }
