@@ -142,9 +142,9 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
   load_info_queue.io.deq.ready := resp_fire_noqueues.fire(load_info_queue.io.deq.valid, all_queues_ready)
   io.l2helperUser.resp.ready := resp_fire_noqueues.fire(io.l2helperUser.resp.valid, all_queues_ready)
 
-  io.optional_hbsram_write.valid := resp_fire_noqueues.fire && all_queues_ready
-  io.optional_hbsram_write.bits.data := memresp_bits_shifted
-  io.optional_hbsram_write.bits.valid_bytes := len_to_write
+  io.optional_hbsram_write.valid := RegNext(resp_fire_noqueues.fire && all_queues_ready)
+  io.optional_hbsram_write.bits.data := RegNext(memresp_bits_shifted)
+  io.optional_hbsram_write.bits.valid_bytes := RegNext(len_to_write)
 
   val resp_fire_allqueues = resp_fire_noqueues.fire && all_queues_ready
   when (resp_fire_allqueues) {
@@ -193,7 +193,9 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
 
 
   val buf_last = (len_already_consumed + io.consumer.user_consumed_bytes) === buf_info_queue.io.deq.bits.len_bytes
-  val count_valids = remapVecValids.map(_.asUInt).reduce(_ +& _)
+  val count_valids_v2 = 32.U - PriorityEncoder(Cat(1.U(1.W), Cat(remapVecValids)))
+  //val count_valids_old = remapVecValids.map(_.asUInt).reduce(_ +& _)
+  val count_valids = count_valids_v2
   val unconsumed_bytes_so_far = buf_info_queue.io.deq.bits.len_bytes - len_already_consumed
 
   val enough_data = Mux(unconsumed_bytes_so_far >= UInt(NUM_QUEUES),

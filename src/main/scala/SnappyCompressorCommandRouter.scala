@@ -83,7 +83,7 @@ class SnappyCompressorCommandRouter()(implicit p: Parameters) extends Module {
   }
 
 
-  val RUNTIME_HT_NUM_ENTRIES_LOG2 = RegInit(14.U(5.W))
+  val RUNTIME_HT_NUM_ENTRIES_LOG2 = RegInit(9.U(5.W))
   io.RUNTIME_HT_NUM_ENTRIES_LOG2 := RUNTIME_HT_NUM_ENTRIES_LOG2
 
   val runtime_ht_num_entries_fire = DecoupledHelper(

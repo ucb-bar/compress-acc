@@ -45,7 +45,7 @@ class SnappyDecompressorCommandExpanderSRAM()(implicit p: Parameters) extends Mo
 
 
   val HIST_BUF_WIDTH = 32
-  val HIST_BUF_ELEMS_PER_CHUNK = 2 * 1024
+  val HIST_BUF_ELEMS_PER_CHUNK = 2 * 64
   val HIST_SIZE_BYTES = HIST_BUF_WIDTH * HIST_BUF_ELEMS_PER_CHUNK
   val HIST_BUF_INDEX_WIDTH = log2Up(HIST_SIZE_BYTES)
   val BYTE_SIZE = 8

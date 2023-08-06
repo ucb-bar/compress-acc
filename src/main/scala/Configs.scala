@@ -233,7 +233,7 @@ class WithMergedCompressorLatencyInjection extends Config((site, here, up) => {
   case ZstdMatchLengthMaxAccuracy => 7
   case ZstdOffsetMaxAccuracy => 6
   case RemoveSnappyFromMergedAccelerator => false
-  case LZ77HistBufOverProvisionFactor => 2 // 2 -> 128kB, 64 ->  4MB
+  case LZ77HistBufOverProvisionFactor => 1 // 2 -> 128kB, 64 ->  4MB
  
   case CompressAccelPrintfEnable => true
   case BuildRoCC => up(BuildRoCC) ++ Seq(

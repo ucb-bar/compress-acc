@@ -98,7 +98,7 @@ class ZstdCompressorCommandRouter(implicit p: Parameters)
     SNAPPY_MAX_OFFSET_ALLOWED := cur_rs1
   }
 
-  val SNAPPY_RUNTIME_HT_NUM_ENTRIES_LOG2 = RegInit(14.U(5.W))
+  val SNAPPY_RUNTIME_HT_NUM_ENTRIES_LOG2 = RegInit(9.U(5.W))
   io.SNAPPY_RUNTIME_HT_NUM_ENTRIES_LOG2 := SNAPPY_RUNTIME_HT_NUM_ENTRIES_LOG2
 
   val runtime_ht_num_entries_fire = DecoupledHelper(
