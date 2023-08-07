@@ -118,6 +118,8 @@ class HufDecompressorHeaderExpander(val decomp_at_once: Int, val cmd_que_depth: 
   val tidx = RegInit(0.U(16.W))
   val rank_count = RegInit(VecInit(Seq.fill(18)(0.U(16.W))))
   val rank_idx = RegInit(VecInit(Seq.fill(18)(0.U(32.W))))
+  val cur_rank_idx_reg = RegInit(0.U(32.W))
+  //val bits_bidx_reg = RegInit(0.U(4.W))
 
   val cur_code = RegInit(0.U(32.W))
   val cur_len  = RegInit(0.U(32.W))
@@ -655,6 +657,9 @@ class HufDecompressorHeaderExpander(val decomp_at_once: Int, val cmd_que_depth: 
 
           tidx := 0.U
           build_dic_state := BUILD_HUF_DIC_INIT_SYMBOL_TABLE
+
+          //bits_bidx_reg := bits(bidx)
+          cur_rank_idx_reg := rank_idx(bits(bidx))
         }
       }
 
@@ -663,8 +668,8 @@ class HufDecompressorHeaderExpander(val decomp_at_once: Int, val cmd_que_depth: 
         symbol_table(cur_code + tidx) := bidx
 
         when (tidx === cur_len - 1.U) {
-          val cur_rank_idx = rank_idx(bits(bidx))
-          rank_idx(bits(bidx)) := cur_rank_idx + cur_len
+          //rank_idx(bits_bidx_reg) := cur_rank_idx_reg + cur_len
+          rank_idx(bits(bidx)) := cur_rank_idx_reg + cur_len
           bidx := bidx + 1.U
 
           when (bidx === huf_num_symbols) {

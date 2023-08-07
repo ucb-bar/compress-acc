@@ -466,6 +466,9 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
             }
         }
         is(PRODUCE_SEQUENCE_PIPE1){
+            // This is the state where the sequence production
+            // and request for decode table entries happen.
+            
             // Do not jump into next sequence if sequence_queue.io.enq.ready === false.B
             // Do not jump into next sequence if buffermanager doesn't have enough bits
             when(seq_processed_so_far < num_sequences){
