@@ -131,8 +131,9 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     val REQUEST_DT_HEADER = 1.U
     val INITIALIZE_DT_STATE = 2.U
     val REQUEST_DT_ENTRY = 3.U
-    val PRODUCE_SEQUENCE = 4.U
-    val RESET_QUEUE = 5.U
+    val PRODUCE_SEQUENCE_PIPE0 = 4.U
+    val PRODUCE_SEQUENCE_PIPE1 = 5.U
+    val RESET_QUEUE = 6.U
     val dt_type_counter = RegInit(0.U(2.W)) // For loop variable in state REQUEST_DT_HEADER
     val dt_entries_receipt = RegInit(false.B) // For loop variable in state REQUEST_DT_HEADER
     val bitstream_receipt = RegInit(false.B) // For loop variable in state REQUEST_DT_HEADER
@@ -144,7 +145,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
 
     // Queues and buffers
     val request_info_queue_flush = false.B
-    val request_info_queue = Module(new Queue(new DTReaderRequestInfo, 6, false, false, request_info_queue_flush || reset))
+    val request_info_queue = Module(new Queue(new DTReaderRequestInfo, 6, false, false, request_info_queue_flush))
     val request_info_enq_count = RegInit(0.U(3.W))
     val request_info_enq_fire = request_info_queue.io.enq.ready && request_info_queue.io.enq.valid
     val request_info_deq_fire = request_info_queue.io.deq.ready && request_info_queue.io.deq.valid
@@ -155,8 +156,8 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     }
     val request_queue_flush = Mux(fsm_state===RESET_QUEUE && request_info_enq_count===0.U, true.B, false.B)
     val bitstream_queue_flush = Mux(fsm_state===RESET_QUEUE && request_info_enq_count===0.U, true.B, false.B)    
-    val request_queue = Module(new Queue(new SnappyDecompressSrcInfo, 6, false, false, request_queue_flush || reset))
-    val bitstream_queue = Module(new Queue(UInt(l2bw.W), 6, false, false, bitstream_queue_flush || reset))
+    val request_queue = Module(new Queue(new SnappyDecompressSrcInfo, 6, false, false, request_queue_flush))
+    val bitstream_queue = Module(new Queue(UInt(l2bw.W), 6, false, false, bitstream_queue_flush))
     
     val buffermanager = Module(new BufferManagerReverse(l2bw))
     val bitstream = Wire(UInt(l2bw.W))
@@ -186,12 +187,9 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     val sequence_produce_cond = Wire(Bool())
     val sequence_produce_cond_delayed = RegInit(false.B)
     sequence_produce_cond_delayed := sequence_produce_cond
-    dt_entry(LL) := Mux(fsm_state===PRODUCE_SEQUENCE && (dt_entries_receipt || sequence_produce_cond_delayed),
-        dt_entry_wire(LL), dt_entry_reg(LL))
-    dt_entry(ML) := Mux(fsm_state===PRODUCE_SEQUENCE && (dt_entries_receipt || sequence_produce_cond_delayed), 
-        dt_entry_wire(ML), dt_entry_reg(ML))
-    dt_entry(OFF) := Mux(fsm_state===PRODUCE_SEQUENCE && (dt_entries_receipt || sequence_produce_cond_delayed), 
-        dt_entry_wire(OFF), dt_entry_reg(OFF))
+    dt_entry(LL) := dt_entry_reg(LL)
+    dt_entry(ML) := dt_entry_reg(ML)
+    dt_entry(OFF) := dt_entry_reg(OFF)
     val tableLog_ll = Wire(UInt(4.W)) //max 9
     tableLog_ll := dt_entry(LL)(63,32)
     val tableLog_ml = Wire(UInt(4.W)) //max 9
@@ -225,7 +223,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     off_nb := dt_entry(OFF)(31, 24)
     off_baseValue := dt_entry(OFF)(63, 32)
 
-    sequence_produce_cond := fsm_state===PRODUCE_SEQUENCE && 
+    sequence_produce_cond := fsm_state===PRODUCE_SEQUENCE_PIPE1 && 
         seq_processed_so_far < num_sequences &&
         sequence_queue.io.enq.ready &&
         (off_nbAdd +& ml_nbAdd +& ll_nbAdd +& ll_nb +& ml_nb +& off_nb) <= buffermanager.io.available_bits
@@ -252,7 +250,8 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     val bitstream_queue_full = (bitstream_queue_enq_count === 6.U)
     val bitstream_request = (bitstream_requests_inflight < 6.U) && 
                             (fsm_state === REQUEST_DT_HEADER || fsm_state === INITIALIZE_DT_STATE ||
-                            fsm_state === REQUEST_DT_ENTRY || fsm_state === PRODUCE_SEQUENCE)
+                            fsm_state === REQUEST_DT_ENTRY || fsm_state === PRODUCE_SEQUENCE_PIPE0 ||
+                            fsm_state === PRODUCE_SEQUENCE_PIPE1)
     request_queue.io.enq.valid := bitstream_request
     when(fsm_state===RESET_QUEUE){
         io.mem_stream.output_ready := true.B
@@ -278,7 +277,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
         io.mem_stream.user_consumed_bytes := 0.U
     }
     
-    sequence_queue.io.enq.valid := fsm_state===PRODUCE_SEQUENCE && 
+    sequence_queue.io.enq.valid := fsm_state===PRODUCE_SEQUENCE_PIPE1 && 
         seq_processed_so_far < num_sequences &&
         (off_nbAdd +& ml_nbAdd +& ll_nbAdd +& ll_nb +& ml_nb +& off_nb) <= buffermanager.io.available_bits
 
@@ -303,7 +302,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     val dt_read = (fsm_state===REQUEST_DT_HEADER && dt_type_counter === 0.U && !dt_entries_receipt) ||
                 (fsm_state===REQUEST_DT_ENTRY && seq_processed_so_far < num_sequences) ||
                 // Performance patch: read DT while producing sequences
-                (fsm_state===PRODUCE_SEQUENCE && seq_processed_so_far < num_sequences && 
+                (fsm_state===PRODUCE_SEQUENCE_PIPE1 && seq_processed_so_far < num_sequences && 
                 sequence_queue.io.enq.ready &&
                 (off_nbAdd +& ml_nbAdd +& ll_nbAdd +& ll_nb +& ml_nb +& off_nb) <= buffermanager.io.available_bits)
     io.ll_dt_entry_sram.dt_read := dt_read
@@ -431,7 +430,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
                 io.ml_dt_entry_sram.dt_entry_num := 1.U+dt_state(ML)
                 io.off_dt_entry_sram.dt_entry_num := 1.U+dt_state(OFF)
                 dt_entries_receipt := true.B
-                fsm_state := PRODUCE_SEQUENCE
+                fsm_state := PRODUCE_SEQUENCE_PIPE0
             }.otherwise{
                 fsm_state := RESET_QUEUE
                 seq_processed_so_far := 0.U
@@ -439,12 +438,18 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
                 CompressAccelLogger.logInfo("DTReader invalid dt_type_counter\n")
             }
         }
-        is(PRODUCE_SEQUENCE){
+        is(PRODUCE_SEQUENCE_PIPE0){
+            // This state only receives decode table entries from the SRAM.
+            // The computation is done in fsm_state PRODUCE_SEQUENCE_PIPE1.
+
             // Use dt_entries_receipt signal to indicate the first cycle of this state.
             // The first cycle is where the DT entries from SRAM should be received.
             
             // Performance patch: Use the when(dt_entries_receipt) block below
             // only for the first batch of request.
+            // This became meaningless for the tapeout version as to meet timing
+            // constraints overlapping sequence production and decode table
+            // read request became impossible.
             when(dt_entries_receipt){
                 dt_entries_receipt := false.B
             }
@@ -457,8 +462,10 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
                 dt_entry_reg(LL) := dt_entry_wire(LL)
                 dt_entry_reg(ML) := dt_entry_wire(ML)
                 dt_entry_reg(OFF) := dt_entry_wire(OFF)
-            }            
-
+                fsm_state := PRODUCE_SEQUENCE_PIPE1
+            }
+        }
+        is(PRODUCE_SEQUENCE_PIPE1){
             // Do not jump into next sequence if sequence_queue.io.enq.ready === false.B
             // Do not jump into next sequence if buffermanager doesn't have enough bits
             when(seq_processed_so_far < num_sequences){
@@ -499,7 +506,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
                     seq_processed_so_far := seq_processed_so_far + 1.U
 
                     // Performance patch: Overlap requesting and consuming DT entries
-                    fsm_state := PRODUCE_SEQUENCE
+                    fsm_state := PRODUCE_SEQUENCE_PIPE0
                     io.ll_dt_entry_sram.dt_entry_num := 1.U+dt_state_ll_wire
                     io.ml_dt_entry_sram.dt_entry_num := 1.U+dt_state_ml_wire
                     io.off_dt_entry_sram.dt_entry_num := 1.U+dt_state_off_wire
@@ -558,9 +565,10 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
         }
     }
     // Request bitstream, in states where DT entries are not requested
-    // Make sure this request does not conflict with DT request
+    // Make sure this request does not conflict with DT request -- now DT is in SRAM so it's okay
     when(fsm_state === INITIALIZE_DT_STATE || fsm_state === REQUEST_DT_HEADER ||
-        fsm_state === REQUEST_DT_ENTRY || fsm_state === PRODUCE_SEQUENCE){
+        fsm_state === REQUEST_DT_ENTRY || fsm_state === PRODUCE_SEQUENCE_PIPE0 ||
+        fsm_state === PRODUCE_SEQUENCE_PIPE1){
         when(bitstream_requests_inflight < 6.U){
             request_queue.io.enq.bits.ip := bitstream_end_addr - (bitstream_requests_so_far+1.U) * (l2bw/8).U
             request_queue.io.enq.bits.isize := (l2bw/8).U
@@ -573,7 +581,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
     }
 
     // Preventing floating wire
-    when(!(fsm_state===PRODUCE_SEQUENCE && seq_processed_so_far < num_sequences && sequence_queue.io.enq.ready)){
+    when(!(fsm_state===PRODUCE_SEQUENCE_PIPE1 && seq_processed_so_far < num_sequences && sequence_queue.io.enq.ready)){
         ll := 0.U
         ml := 0.U
         off := 0.U
@@ -581,7 +589,7 @@ class ZstdDTReader(l2bw: Int)(implicit p: Parameters) extends Module{
         off_temp_temp := 0.U
         sequence_queue.io.enq.valid := false.B
     }
-    when(fsm_state=/=PRODUCE_SEQUENCE){
+    when(fsm_state=/=PRODUCE_SEQUENCE_PIPE1){
         sequence_queue.io.enq.bits.ll := 0.U
         sequence_queue.io.enq.bits.ml := 0.U
         sequence_queue.io.enq.bits.offset := 0.U
