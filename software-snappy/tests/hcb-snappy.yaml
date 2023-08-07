@@ -1,0 +1,14 @@
+{
+  "name": "hcb-snappy",
+  "base": "bare-base.json",
+  "jobs": [
+    {
+      "name": "snappy_compress",
+      "bin": "009990_cl0_ws16.riscv"
+    },
+    {
+      "name": "snappy_decompress",
+      "bin": "009997_cl0_ws16.riscv"
+    }
+  ]
+}
