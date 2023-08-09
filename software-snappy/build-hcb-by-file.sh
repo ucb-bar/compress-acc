@@ -21,7 +21,7 @@ function buildbench_compress() {
 
     riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c test-compress.c
     riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c accellib.c
-    riscv64-unknown-elf-gcc -static -specs=htif_nano.specs test-compress.o accellib.o -o $OUTPUTDIR/$1.riscv
+    riscv64-unknown-elf-gcc -static -specs=htif_nano.specs test-compress.o accellib.o -o $OUTPUTDIR/comp-$1.riscv
 }
 
 function buildbench_decompress() {
@@ -39,7 +39,7 @@ function buildbench_decompress() {
 
     riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c test-decompress.c
     riscv64-unknown-elf-gcc -fno-common -fno-builtin-printf -specs=htif_nano.specs -c accellib.c
-    riscv64-unknown-elf-gcc -static -specs=htif_nano.specs test-decompress.o accellib.o -o $OUTPUTDIR/$1.riscv
+    riscv64-unknown-elf-gcc -static -specs=htif_nano.specs test-decompress.o accellib.o -o $OUTPUTDIR/decomp-$1.riscv
 }
 
 buildbench_compress   009990_cl0_ws16

@@ -4,11 +4,11 @@
   "jobs": [
     {
       "name": "snappy_compress",
-      "bin": "009990_cl0_ws16.riscv"
+      "bin": "comp-009990_cl0_ws16.riscv"
     },
     {
       "name": "snappy_decompress",
-      "bin": "009997_cl0_ws16.riscv"
+      "bin": "decomp-009997_cl0_ws16.riscv"
     }
   ]
 }
