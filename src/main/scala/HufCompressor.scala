@@ -1,7 +1,7 @@
 package compressacc
 
 import Chisel._
-import chisel3.{Printable}
+import chisel3.{Printable, DontCare}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
@@ -34,7 +34,7 @@ class HufCompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC
   tlNode := l2_lit_writer.masterNode
 }
 
-class HufCompressorImp(outer: HufCompressor)(implicit p: Parameters) 
+class HufCompressorImp(outer: HufCompressor)(implicit p: Parameters)
   extends LazyRoCCModuleImp(outer) with MemoryOpConstants {
 
   // tie up some wires
@@ -44,6 +44,10 @@ class HufCompressorImp(outer: HufCompressor)(implicit p: Parameters)
   io.mem.keep_clock_enabled := true.B
   io.interrupt := false.B
   io.busy := false.B
+  io.fpu_resp.ready := true.B
+  io.fpu_req.valid := false.B
+  io.fpu_req.bits := DontCare
+
 
   //////////////////////////////////////////////////////////////////////////
 

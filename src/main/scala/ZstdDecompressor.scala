@@ -1,7 +1,7 @@
 package compressacc
 
 import Chisel._
-import chisel3.{Printable}
+import chisel3.{Printable, DontCare}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
@@ -56,7 +56,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   val mem_decomp_ireader_dtreader =     LazyModule(new L2MemHelper("[mem_decomp_ireader_dtreader]", numOutstandingReqs=32))
   roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_dtreader.masterNode
 
-  // For LZ77 
+  // For LZ77
   //memloader of seq executor-history lookup
   val mem_decomp_ireader_histlookup =     LazyModule(new L2MemHelper("[m_decomp_readbackref]", numOutstandingReqs=32))
   roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_histlookup.masterNode
@@ -75,7 +75,7 @@ class ZstdDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
   roccTLNode := TLBuffer.chainNode(1) := mem_decomp_ireader_rawrle.masterNode
 }
 
-class ZstdDecompressorImp(outer: ZstdDecompressor)(implicit p: Parameters) 
+class ZstdDecompressorImp(outer: ZstdDecompressor)(implicit p: Parameters)
   extends LazyRoCCModuleImp(outer) with MemoryOpConstants {
 
   io.mem.req.valid := false.B
@@ -84,6 +84,10 @@ class ZstdDecompressorImp(outer: ZstdDecompressor)(implicit p: Parameters)
   io.mem.keep_clock_enabled := true.B
   io.interrupt := false.B
   io.busy := false.B
+  io.fpu_resp.ready := true.B
+  io.fpu_req.valid := false.B
+  io.fpu_req.bits := DontCare
+
   ////////////////////////////////////////////////////////////////////////////
   // Don't touch above this line
   ////////////////////////////////////////////////////////////////////////////
@@ -102,7 +106,7 @@ class ZstdDecompressorImp(outer: ZstdDecompressor)(implicit p: Parameters)
   cmd_router.io.snappy_bufs_completed := outer.frame_decompressor.module.io.snappy_bufs_completed
   cmd_router.io.snappy_no_writes_inflight := outer.frame_decompressor.module.io.snappy_no_writes_inflight
 
-  
+
 
   val memloader = Module(new MemLoader(memLoaderQueDepth=2))
   outer.l2_fhdr_reader.module.io.userif <> memloader.io.l2helperUser
@@ -266,4 +270,3 @@ class WithZstdDecompressor32 extends Config (
   new WithHufSpeculationAmount(32) ++
   new WithZstdDecompressorBase
 )
-

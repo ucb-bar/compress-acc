@@ -1,7 +1,7 @@
 package compressacc
 
 import Chisel._
-import chisel3.{Printable}
+import chisel3.{Printable, DontCare}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
@@ -53,6 +53,10 @@ class SnappyDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends Laz
 
 class SnappyDecompressorImp(outer: SnappyDecompressor)(implicit p: Parameters) extends LazyRoCCModuleImp(outer)
 with MemoryOpConstants {
+
+  io.fpu_resp.ready := true.B
+  io.fpu_req.valid := false.B
+  io.fpu_req.bits := DontCare
 
   io.interrupt := Bool(false)
 
@@ -110,4 +114,3 @@ with MemoryOpConstants {
 
   io.busy := Bool(false)
 }
-

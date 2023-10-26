@@ -29,7 +29,7 @@ abstract class ZstdCompressorModule(implicit val p: Parameters)
   extends Module with HasZstdCompressorParams
 
 
-class ZstdCompressor(opcodes: OpcodeSet)(implicit p: Parameters) 
+class ZstdCompressor(opcodes: OpcodeSet)(implicit p: Parameters)
   extends LazyRoCC(opcodes = opcodes, nPTWPorts = 18) with HasZstdCompressorParams {
 
   override lazy val module = new ZstdCompressorImp(this)
@@ -91,9 +91,9 @@ class ZstdCompressor(opcodes: OpcodeSet)(implicit p: Parameters)
   tlNode := l2_raw_lit_writer.masterNode
 }
 
-class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters) 
-  extends LazyRoCCModuleImp(outer) 
-  with MemoryOpConstants 
+class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters)
+  extends LazyRoCCModuleImp(outer)
+  with MemoryOpConstants
   with HasZstdCompressorParams {
 
   io.mem.req.valid := false.B
@@ -102,6 +102,10 @@ class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters)
   io.mem.keep_clock_enabled := true.B
   io.interrupt := false.B
   io.busy := false.B
+  io.fpu_resp.ready := true.B
+  io.fpu_req.valid := false.B
+  io.fpu_req.bits := DontCare
+
   ////////////////////////////////////////////////////////////////////////////
   // Don't touch above this line
   ////////////////////////////////////////////////////////////////////////////

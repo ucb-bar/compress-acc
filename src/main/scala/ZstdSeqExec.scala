@@ -1,6 +1,6 @@
 /*
 
-//*From SW, get sequence(LL, ML, offset), *litPtr, op, dictEnd, prefixStart 
+//*From SW, get sequence(LL, ML, offset), *litPtr, op, dictEnd, prefixStart
 //via ROCCCommands*/
 
 package compressacc
@@ -29,12 +29,17 @@ class ZstdSeqExec(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(o
   tlNode := mem_decomp_writer.masterNode
 
   val mem_decomp_readbackref = LazyModule(new L2MemHelper("[m_decomp_readbackref]", numOutstandingReqs=32))
-  tlNode := mem_decomp_readbackref.masterNode 
+  tlNode := mem_decomp_readbackref.masterNode
 }
 
 class ZstdSeqExecImp(outer: ZstdSeqExec)(implicit p: Parameters) extends LazyRoCCModuleImp(outer) with MemoryOpConstants {
+
+  io.fpu_resp.ready := true.B
+  io.fpu_req.valid := false.B
+  io.fpu_req.bits := DontCare
+
   io.interrupt := Bool(false)
-  
+
   val control_unit = Module(new ZstdSeqExecControl(128))
   control_unit.io.rocc_in <> io.cmd
   io.resp <> control_unit.io.rocc_out
@@ -79,7 +84,7 @@ class ZstdSeqExecImp(outer: ZstdSeqExec)(implicit p: Parameters) extends LazyRoC
   control_unit.io.bufs_completed := seqExecWriter.io.bufs_completed
   control_unit.io.no_writes_inflight := seqExecWriter.io.no_writes_inflight
   outer.mem_decomp_writer.module.io.userif <> seqExecWriter.io.l2helperUser
-  
+
   // L2 I/F 0: boilerplate, do not touch
   outer.mem_decomp_ireader.module.io.sfence <> control_unit.io.sfence_out
   outer.mem_decomp_ireader.module.io.status.valid := control_unit.io.dmem_status_out.valid

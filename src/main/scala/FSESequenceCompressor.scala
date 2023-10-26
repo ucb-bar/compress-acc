@@ -1,7 +1,7 @@
 package compressacc
 
 import Chisel._
-import chisel3.{Printable}
+import chisel3.{Printable, DontCare}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
@@ -35,6 +35,10 @@ class FSESequenceCompressorImp(outer: FSESequenceCompressor)
   io.mem.keep_clock_enabled := true.B
   io.interrupt := false.B
   io.busy := false.B
+  io.fpu_resp.ready := true.B
+  io.fpu_req.valid := false.B
+  io.fpu_req.bits := DontCare
+
 
   //////////////////////////////////////////////////////////////////////////
 
