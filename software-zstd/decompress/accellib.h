@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "rocc.h"
+#include "rocc_opcode8.h"
 #include <stdbool.h>
 
 #define DECOMPRESS_OPCODE 0

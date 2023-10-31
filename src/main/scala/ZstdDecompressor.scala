@@ -266,4 +266,6 @@ class WithZstdDecompressor32 extends Config (
   new WithHufSpeculationAmount(32) ++
   new WithZstdDecompressorBase
 )
-
+class WithMergedDecompressor32 extends Config(
+  new WithZstdDecompressor32 ++
+  new EnableSnappyInMergedDecompressor)

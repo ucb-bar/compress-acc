@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "rocc.h"
+#include "rocc_opcode8.h"
 
 #define COMPRESS_OPCODE 1
 
