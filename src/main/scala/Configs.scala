@@ -52,11 +52,14 @@ class WithZstdCompressor extends Config ((site, here, up) => {
   case HufCompressDicBuilderProcessedStatBytesPerCycle => 2
   case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 4
   case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
+  case ZstdLiteralLengthMaxAccuracy => 7
+  case ZstdMatchLengthMaxAccuracy => 7
+  case ZstdOffsetMaxAccuracy => 6
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
-  case BuildRoCC => up(BuildRoCC) ++ Seq(
+  case BuildRoCC => Seq(
     (p: Parameters) => {
-      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom2)(p))
       zstd_compressor
     }
   )
