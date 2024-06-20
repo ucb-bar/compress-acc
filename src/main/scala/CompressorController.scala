@@ -51,7 +51,23 @@ class SnappyCompressorController(implicit p: Parameters) extends Module {
       io.shared_control.mf_src.compress_src_info2.ready)
   }
 
+  when (io.src_info.fire) {
+    CompressAccelLogger.logInfo("SnappyCompressorController io.src_info.fire\n")
+  }
+
   io.shared_control.mf_dst.seq_dst_info <> io.dst_info
+
+  when (io.dst_info.fire) {
+    CompressAccelLogger.logInfo("SnappyCompressorController io.dst_info.fire\n")
+  }
+
+  when (io.shared_control.mf_dst.lit_dst_info.fire) {
+    CompressAccelLogger.logInfo("SnappyCompressorController io.shared_control.mf_dst.lit_dst_info.fire\n")
+  }
+
+  when (io.shared_control.mf_dst.seq_dst_info.fire) {
+    CompressAccelLogger.logInfo("SnappyCompressorController io.shared_control.mf_dst.seq_dst_info.fire\n")
+  }
 
   io.shared_control.mf_dst.lit_dst_info.valid := false.B
   io.shared_control.mf_dst.lit_dst_info.bits.op := 0.U
@@ -113,6 +129,15 @@ class CompressorController(implicit p: Parameters) extends Module {
   zstd_controller.io.src_info.valid := zstd_src_valid.fire(zstd_controller.io.src_info.ready)
   zstd_controller.io.dst_info.valid := zstd_dst_valid.fire(zstd_controller.io.dst_info.ready)
 
+  when (zstd_src_valid.fire) {
+    CompressAccelLogger.logInfo("TOPCONTROLLER zstd_src_fire\n")
+    CompressAccelLogger.logInfo("TOPCONTROLLER src info ip %x isize %d\n", io.src_info.bits.ip, io.src_info.bits.isize)
+  }
+
+  when (zstd_dst_valid.fire) {
+    CompressAccelLogger.logInfo("TOPCONTROLLER zstd_dst_fire\n")
+    CompressAccelLogger.logInfo("TOPCONTROLLER dst info op %x cmpflag %x\n", io.dst_info.bits.op, io.dst_info.bits.cmpflag)
+  }
 
   val snappy_controller = Module(new SnappyCompressorController)
   snappy_controller.io.src_info.bits := io.src_info.bits
@@ -128,6 +153,21 @@ class CompressorController(implicit p: Parameters) extends Module {
     io.dst_info.valid,
     io.ALGORITHM === Snappy.U)
 
+  when (snappy_src_valid.fire) {
+    CompressAccelLogger.logInfo("TOPCONTROLLER snappy_src_fire\n")
+    CompressAccelLogger.logInfo("TOPCONTROLLER src info ip %x isize %d\n", io.src_info.bits.ip, io.src_info.bits.isize)
+  }
+
+  when (snappy_dst_valid.fire) {
+    CompressAccelLogger.logInfo("TOPCONTROLLER snappy_dst_fire\n")
+    CompressAccelLogger.logInfo("TOPCONTROLLER dst info op %x cmpflag %x\n", io.dst_info.bits.op, io.dst_info.bits.cmpflag)
+  }
+
+
+  assert(!(zstd_src_valid.fire && snappy_src_valid.fire), "zstd & snappy src cannot fire at the same time")
+  assert(!(zstd_dst_valid.fire && snappy_dst_valid.fire), "zstd & snappy dst cannot fire at the same time")
+
+
   snappy_controller.io.src_info.valid := snappy_src_valid.fire(snappy_controller.io.src_info.ready)
   snappy_controller.io.dst_info.valid := snappy_dst_valid.fire(snappy_controller.io.dst_info.ready)
 
@@ -138,6 +178,13 @@ class CompressorController(implicit p: Parameters) extends Module {
                        snappy_dst_valid.fire(io.dst_info.valid)
 
   val use_zstd = io.ALGORITHM === ZSTD.U
+  val prev_use_zstd = RegNext(use_zstd)
+
+  when (use_zstd =/= prev_use_zstd) {
+    CompressAccelLogger.logInfo("ALGORITHM CHANGE prev_use_zstd %d to use_zstd %d!!!!!!!!!!!!!!!!!!!!!!!!!!\n",
+      prev_use_zstd, use_zstd)
+  }
+
   when (io.src_info.fire) {
     CompressAccelLogger.logInfo("CommonCompressorControl io.src_info.fire use_zstd: %d\n", use_zstd)
   }
@@ -145,6 +192,8 @@ class CompressorController(implicit p: Parameters) extends Module {
   when (io.dst_info.fire) {
     CompressAccelLogger.logInfo("CommonCompressorControl io.dst_info.fire use_zstd: %d\n", use_zstd)
   }
+
+
 
   val zstd_shared_control = zstd_controller.io.shared_control
   val snappy_shared_control = snappy_controller.io.shared_control

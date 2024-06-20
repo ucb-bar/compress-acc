@@ -37,6 +37,9 @@ class ZstdCompressorCommandRouterIO()(implicit val p: Parameters)
   val SNAPPY_MAX_OFFSET_ALLOWED = Output(UInt(64.W))
   val SNAPPY_RUNTIME_HT_NUM_ENTRIES_LOG2 = Output(UInt(5.W))
 
+  val LATENCY_INJECTION_CYCLES = Output(UInt(64.W))
+  val HAS_INTERMEDIATE_CACHE = Output(Bool())
+
   val zstd_finished_cnt = Flipped(Decoupled(UInt(64.W)))
   val snappy_finished_cnt = Flipped(Decoupled(UInt(64.W)))
 }
@@ -55,7 +58,8 @@ class ZstdCompressorCommandRouter(implicit p: Parameters)
   val FUNCT_SNPY_DST_INFO                    = 7.U
   val FUNCT_SNPY_MAX_OFFSET_ALLOWED          = 8.U
   val FUNCT_SNPY_RUNTIME_HT_NUM_ENTRIES_LOG2 = 9.U
-  val FUNCT_CHECK_COMPLETION                 = 10.U
+  val FUNCT_LATENCY_INJECTION_INFO           = 10.U
+  val FUNCT_CHECK_COMPLETION                 = 11.U
 
   val snappy_dispatched_src_info = RegInit(0.U(64.W))
   val zstd_dispatched_src_info = RegInit(0.U(64.W))
@@ -76,6 +80,11 @@ class ZstdCompressorCommandRouter(implicit p: Parameters)
 
   val ALGORITHM = RegInit(ZSTD.U(1.W))
   io.ALGORITHM := ALGORITHM
+
+  val prev_algo = RegNext(ALGORITHM)
+  when (ALGORITHM =/= prev_algo) {
+    CompressAccelLogger.logInfo("ALGORITHM CHANGED FROM %d to %d\n", prev_algo, ALGORITHM)
+  }
 
   val SNAPPY_MAX_OFFSET_ALLOWED = RegInit(((64 * 1024) - 64).U(64.W))
   io.SNAPPY_MAX_OFFSET_ALLOWED := SNAPPY_MAX_OFFSET_ALLOWED
@@ -194,6 +203,25 @@ class ZstdCompressorCommandRouter(implicit p: Parameters)
     CompressAccelLogger.logInfo("CommandRouter, io.clevel_info: %d\n", io.clevel_info.bits)
   }
 
+
+
+  val LATENCY_INJECTION_CYCLES = RegInit(0.U(64.W))
+  val HAS_INTERMEDIATE_CACHE = RegInit(false.B)
+
+  io.LATENCY_INJECTION_CYCLES := LATENCY_INJECTION_CYCLES
+  io.HAS_INTERMEDIATE_CACHE := HAS_INTERMEDIATE_CACHE
+
+  val latency_injection_info_fire = DecoupledHelper(
+    io.rocc_in.valid,
+    cur_funct === FUNCT_LATENCY_INJECTION_INFO
+  )
+
+  when (latency_injection_info_fire.fire) {
+    LATENCY_INJECTION_CYCLES := cur_rs1
+    HAS_INTERMEDIATE_CACHE := cur_rs2(0).asBool
+  }
+
+
   val zstd_finished_q = Module(new Queue(UInt(64.W), queDepth))
   zstd_finished_q.io.enq <> io.zstd_finished_cnt
 
@@ -226,6 +254,7 @@ class ZstdCompressorCommandRouter(implicit p: Parameters)
                       seq_buff_info_fire.fire(io.rocc_in.valid) ||
                       dst_info_fire.fire(io.rocc_in.valid) ||
                       clevel_info_fire.fire(io.rocc_in.valid) ||
+                      latency_injection_info_fire.fire(io.rocc_in.valid) ||
                       do_check_completion_fire.fire(io.rocc_in.valid)
 
   io.rocc_out.valid := do_check_completion_fire.fire
