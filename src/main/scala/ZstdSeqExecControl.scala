@@ -165,7 +165,7 @@ class ZstdSeqExecControl(l2bw: Int)(implicit p: Parameters) extends Module{
   // (1) Queue for literal read information - moved to here because of variable order
   val lit_src_info_queue_flush = Wire(Bool())
   val lit_src_info_queue = Module(new Queue(new SnappyDecompressSrcInfo,
-    4, false, false, lit_src_info_queue_flush))
+    4, false, false, lit_src_info_queue_flush || reset))
 
   // (2) Queue for write
   val dest_info_queue = Module(new Queue(new SnappyDecompressDestInfo, 4))
