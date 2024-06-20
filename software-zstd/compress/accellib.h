@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include "rocc.h"
 
-#define COMPRESS_OPCODE 1
+#define COMPRESS_OPCODE 2
 
 #define COMPRESS_SFENCE 0
 #define FUNCT_ZSTD_SRC_INFO 1
@@ -28,17 +28,13 @@ typedef struct {
 } latency_info_t ;
 
 
-
-
-
-
 void ZstdCompressSetDynamicHistSize(uint64_t hist_sram_size_limit_bytes);
 
 void ZstdCompressSetDynamicHashTableSizeLog2(uint64_t hash_table_size_log2);
 
 void ZstdCompressSetLatencyInjectionInfo(uint64_t latency_inject_cycles, bool has_intermediate_cache);
 
-unsigned char * ZstdCompressAccelSetup(size_t write_region_size, uint64_t hist_sram_size_limit_bytes);
+unsigned char * ZstdCompressAccelSetup(size_t write_region_size);
 
 unsigned char * ZstdCompressWorkspaceSetup(size_t write_region_size);
 
@@ -63,35 +59,5 @@ int ZstdAccelCompress(const unsigned char * src, // src file
                       );
 
 volatile int ZstdBlockOnCompressCompletion(volatile int * completion_flag);
-
-
-
-void SnappyCompressSetDynamicHistSize(uint64_t hist_sram_size_limit_bytes);
-
-unsigned char * SnappyCompressAccelSetup(size_t write_region_size, uint64_t hist_sram_size_limit_bytes);
-
-void SnappyAccelCompressNonblocking(const unsigned char * src,
-                                    const size_t srcSize,
-                                    unsigned char *dst,
-                                    int* success_flag);
-
-int SnappyAccelCompress(const unsigned char * src,
-                        const size_t srcSize,
-                        unsigned char *dst);
-
-volatile int SnappyBlockOnCompressCompletion(volatile int * completion_flag);
-
-
-
-
-void SnappyDecompressSetDynamicHistSize(uint64_t sram_size_limit_bytes);
-
-unsigned char * SnappyDecompressAccelSetup(size_t write_region_size, uint64_t sram_size_limit_bytes);
-
-void SnappyAccelRawUncompressNonblocking(const unsigned char* compressed, size_t compressed_length, unsigned char* uncompressed, bool* success_flag);
-
-bool SnappyAccelRawUncompress(const unsigned char* compressed, size_t compressed_length, unsigned char* uncompressed);
-
-volatile bool BlockOnUncompressCompletion(volatile bool * completion_flag);
 
 #endif //__ACCEL_H

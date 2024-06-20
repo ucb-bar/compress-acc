@@ -49,8 +49,8 @@ function runtest() {
 
   buildbench $1
 
-  cd $VCSDIR
-  make -j20 CONFIG=$CONFIG run-binary-debug-hex BINARY=$BASEDIR/$1.riscv
+# cd $VCSDIR
+# make -j20 CONFIG=$CONFIG run-binary-debug-hex BINARY=$BASEDIR/$1.riscv
 
 # cd $BASEDIR
 # python $BASEDIR/../scripts/get-compressed.py --hwlog $SIMOUTPUTDIR/$1.out --algo zstd --out $BASEDIR/compressed_bytes.h
@@ -58,5 +58,6 @@ function runtest() {
 # ./check.x86
 }
 
-runtest 007662_cl1_ws15
-runtest 000185_cl1_ws10
+# runtest 007662_cl1_ws15
+# runtest 000185_cl1_ws10
+runtest 009992_cl1_ws10
