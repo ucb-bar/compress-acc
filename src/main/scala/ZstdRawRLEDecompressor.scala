@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, SyncReadMem}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -24,7 +25,7 @@ class ZstdRawRLEDecompressor(l2bw: Int)(implicit p: Parameters) extends Module{
     // to MemLoader (memloader_rawrle)
     val src_info = Decoupled(new StreamInfo)
     // from MemLoader (memloader_rawrle)
-    val mem_stream = (new MemLoaderConsumerBundle).flip
+    val mem_stream = Flipped(new MemLoaderConsumerBundle)
 
     // to ZstdSeqExecWriter
     val rawrle_data = Decoupled(new LiteralChunk)

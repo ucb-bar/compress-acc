@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -52,7 +53,7 @@ class CombinationalVarintEncode()(implicit p: Parameters) extends Module {
     chunk0_includebit, chunk0
   )
 
-  io.outputBytes := chunk0_includebit +& chunk1_includebit +& chunk2_includebit +& chunk3_includebit +& chunk4_includebit +& chunk5_includebit +& chunk6_includebit +& chunk7_includebit +& chunk8_includebit +& UInt(1)
+  io.outputBytes := chunk0_includebit +& chunk1_includebit +& chunk2_includebit +& chunk3_includebit +& chunk4_includebit +& chunk5_includebit +& chunk6_includebit +& chunk7_includebit +& chunk8_includebit +& 1.U
 }
 
 
@@ -93,33 +94,33 @@ class CombinationalVarint()(implicit p: Parameters) extends Module {
   val outchunk0 = chunk0
 
   val mask1 = include0
-  val outchunk1 = Mux(mask1, chunk1, UInt(0, 7.W))
+  val outchunk1 = Mux(mask1, chunk1, 0.U(7.W))
 
   val mask2 = include0 & include1
-  val outchunk2 = Mux(mask2, chunk2, UInt(0, 7.W))
+  val outchunk2 = Mux(mask2, chunk2, 0.U(7.W))
 
   val mask3 = include0 & include1 & include2
-  val outchunk3 = Mux(mask3, chunk3, UInt(0, 7.W))
+  val outchunk3 = Mux(mask3, chunk3, 0.U(7.W))
 
   val mask4 = include0 & include1 & include2 & include3
-  val outchunk4 = Mux(mask4, chunk4, UInt(0, 7.W))
+  val outchunk4 = Mux(mask4, chunk4, 0.U(7.W))
 
   val mask5 = include0 & include1 & include2 & include3 & include4
-  val outchunk5 = Mux(mask5, chunk5, UInt(0, 7.W))
+  val outchunk5 = Mux(mask5, chunk5, 0.U(7.W))
 
   val mask6 = include0 & include1 & include2 & include3 & include4 & include5
-  val outchunk6 = Mux(mask6, chunk6, UInt(0, 7.W))
+  val outchunk6 = Mux(mask6, chunk6, 0.U(7.W))
 
   val mask7 = include0 & include1 & include2 & include3 & include4 & include5 & include6
-  val outchunk7 = Mux(mask7, chunk7, UInt(0, 7.W))
+  val outchunk7 = Mux(mask7, chunk7, 0.U(7.W))
 
   val mask8 = include0 & include1 & include2 & include3 & include4 & include5 & include6 & include7
-  val outchunk8 = Mux(mask8, chunk8, UInt(0, 7.W))
+  val outchunk8 = Mux(mask8, chunk8, 0.U(7.W))
 
   val mask9 = include0 & include1 & include2 & include3 & include4 & include5 & include6 & include7 & include8
-  val outchunk9 = Mux(mask9, chunk9, UInt(0, 1.W))
+  val outchunk9 = Mux(mask9, chunk9, 0.U(1.W))
 
-  io.consumedLenBytes := mask1.asUInt +& mask2.asUInt +& mask3.asUInt +& mask4.asUInt +& mask5.asUInt +& mask6.asUInt +& mask7.asUInt +& mask8.asUInt +& mask9.asUInt +& UInt(1)
+  io.consumedLenBytes := mask1.asUInt +& mask2.asUInt +& mask3.asUInt +& mask4.asUInt +& mask5.asUInt +& mask6.asUInt +& mask7.asUInt +& mask8.asUInt +& mask9.asUInt +& 1.U
 
   io.outputData := Cat(
     outchunk9,

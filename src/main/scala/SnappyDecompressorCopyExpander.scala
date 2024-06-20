@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -13,8 +14,8 @@ import freechips.rocketchip.rocket.constants.MemoryOpConstants
 class SnappyDecompressorCopyExpander()(implicit p: Parameters) extends Module with MemoryOpConstants {
 
   val io = IO(new Bundle {
-    val internal_commands_in = (Decoupled(new SnappyInternalCommandRep)).flip
-    val literal_chunks_in = (Decoupled(new LiteralChunk)).flip
+    val internal_commands_in = Flipped(Decoupled(new SnappyInternalCommandRep))
+    val literal_chunks_in = Flipped(Decoupled(new LiteralChunk))
 
     val internal_commands_out = (Decoupled(new SnappyInternalCommandRep))
     val literal_chunks_out = (Decoupled(new LiteralChunk))

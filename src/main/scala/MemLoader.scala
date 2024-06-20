@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -17,7 +18,7 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
   val io = IO(new Bundle {
     val l2helperUser = new L2MemHelperBundle
 
-    val src_info = Decoupled(new StreamInfo).flip
+    val src_info = Flipped(Decoupled(new StreamInfo))
 
     val consumer = new MemLoaderConsumerBundle
   })
@@ -28,15 +29,15 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
 
   val base_addr_bytes = io.src_info.bits.ip
   val base_len = io.src_info.bits.isize
-  val base_addr_start_index = io.src_info.bits.ip & UInt(0x1F)
+  val base_addr_start_index = io.src_info.bits.ip & 0x1F.U
   val aligned_loadlen =  base_len + base_addr_start_index
-  val base_addr_end_index = (base_len + base_addr_start_index) & UInt(0x1F)
-  val base_addr_end_index_inclusive = (base_len + base_addr_start_index - UInt(1)) & UInt(0x1F)
-  val extra_word = ((aligned_loadlen & UInt(0x1F)) =/= UInt(0)).asUInt
+  val base_addr_end_index = (base_len + base_addr_start_index) & 0x1F.U
+  val base_addr_end_index_inclusive = (base_len + base_addr_start_index - 1.U) & 0x1F.U
+  val extra_word = ((aligned_loadlen & 0x1F.U) =/= 0.U).asUInt
 
-  val base_addr_bytes_aligned = (base_addr_bytes >> UInt(5)) << UInt(5)
-  val words_to_load = (aligned_loadlen >> UInt(5)) + extra_word
-  val words_to_load_minus_one = words_to_load - UInt(1)
+  val base_addr_bytes_aligned = (base_addr_bytes >> 5.U) << 5.U
+  val words_to_load = (aligned_loadlen >> 5.U) + extra_word
+  val words_to_load_minus_one = words_to_load - 1.U
 
 
   val print_not_done = RegInit(true.B)
@@ -68,18 +69,18 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
 
   io.l2helperUser.req.bits.cmd := M_XRD
   io.l2helperUser.req.bits.size := log2Ceil(32).U
-  io.l2helperUser.req.bits.data := Bits(0)
+  io.l2helperUser.req.bits.data := 0.U
 
-  val addrinc = RegInit(UInt(0, 64.W))
+  val addrinc = RegInit(0.U(64.W))
 
-  load_info_queue.io.enq.bits.start_byte := Mux(addrinc === UInt(0), base_addr_start_index, UInt(0))
-  load_info_queue.io.enq.bits.end_byte := Mux(addrinc === words_to_load_minus_one, base_addr_end_index_inclusive, UInt(31))
+  load_info_queue.io.enq.bits.start_byte := Mux(addrinc === 0.U, base_addr_start_index, 0.U)
+  load_info_queue.io.enq.bits.end_byte := Mux(addrinc === words_to_load_minus_one, base_addr_end_index_inclusive, 31.U)
 
 
   when (request_fire.fire && (addrinc === words_to_load_minus_one)) {
-    addrinc := UInt(0)
+    addrinc := 0.U
   } .elsewhen (request_fire.fire) {
-    addrinc := addrinc + UInt(1)
+    addrinc := addrinc + 1.U
   }
 
   when (io.src_info.fire) {
@@ -91,7 +92,7 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
                                             addrinc === words_to_load_minus_one)
 
   buf_info_queue.io.enq.valid := request_fire.fire(buf_info_queue.io.enq.ready,
-                                            addrinc === UInt(0))
+                                            addrinc === 0.U)
   load_info_queue.io.enq.valid := request_fire.fire(load_info_queue.io.enq.ready)
 
   buf_info_queue.io.enq.bits.len_bytes := base_len
@@ -99,29 +100,30 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
   io.l2helperUser.req.bits.addr := (base_addr_bytes_aligned) + (addrinc << 5)
   io.l2helperUser.req.valid := request_fire.fire(io.l2helperUser.req.ready)
 
-
-
-
-
   val NUM_QUEUES = 32
   val QUEUE_DEPTHS = memLoaderQueDepth
-  val write_start_index = RegInit(UInt(0, log2Up(NUM_QUEUES+1).W))
-  val mem_resp_queues = Vec.fill(NUM_QUEUES)(Module(new Queue(UInt(8.W), QUEUE_DEPTHS)).io)
-
-
+  val write_start_index = RegInit(0.U(log2Up(NUM_QUEUES+1).W))
+  val mem_resp_queues = Seq.fill(NUM_QUEUES)(Module(new Queue(UInt(8.W), QUEUE_DEPTHS)).io)
 
   val align_shamt = (load_info_queue.io.deq.bits.start_byte << 3)
   val memresp_bits_shifted = io.l2helperUser.resp.bits.data >> align_shamt
 
   for ( queueno <- 0 until NUM_QUEUES ) {
-    mem_resp_queues((write_start_index +& UInt(queueno)) % UInt(NUM_QUEUES)).enq.bits := memresp_bits_shifted >> (queueno * 8)
+    mem_resp_queues(queueno).enq.bits := 0.U
+
+    val idx = (write_start_index +& queueno.U) % NUM_QUEUES.U
+    for (j <- 0 until NUM_QUEUES) {
+      when (j.U === idx) {
+        mem_resp_queues(j).enq.bits := memresp_bits_shifted >> (queueno * 8)
+      }
+    }
   }
 
-  val len_to_write = (load_info_queue.io.deq.bits.end_byte - load_info_queue.io.deq.bits.start_byte) +& UInt(1)
+  val len_to_write = (load_info_queue.io.deq.bits.end_byte - load_info_queue.io.deq.bits.start_byte) +& 1.U
 
   val wrap_len_index_wide = write_start_index +& len_to_write
-  val wrap_len_index_end = wrap_len_index_wide % UInt(NUM_QUEUES)
-  val wrapped = wrap_len_index_wide >= UInt(NUM_QUEUES)
+  val wrap_len_index_end = wrap_len_index_wide % NUM_QUEUES.U
+  val wrapped = wrap_len_index_wide >= NUM_QUEUES.U
 
   when (load_info_queue.io.deq.valid) {
     CompressAccelLogger.logInfo("memloader start %x, end %x\n", load_info_queue.io.deq.bits.start_byte,
@@ -144,41 +146,38 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     val use_this_queue = Mux(wrapped,
-                             (UInt(queueno) >= write_start_index) || (UInt(queueno) < wrap_len_index_end),
-                             (UInt(queueno) >= write_start_index) && (UInt(queueno) < wrap_len_index_end)
+                             (queueno.U >= write_start_index) || (queueno.U < wrap_len_index_end),
+                             (queueno.U >= write_start_index) && (queueno.U < wrap_len_index_end)
                             )
     mem_resp_queues(queueno).enq.valid := resp_fire_noqueues.fire && use_this_queue && all_queues_ready
   }
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     when (mem_resp_queues(queueno).deq.valid) {
-      CompressAccelLogger.logInfo("queueind %d, val %x\n", UInt(queueno), mem_resp_queues(queueno).deq.bits)
+      CompressAccelLogger.logInfo("queueind %d, val %x\n", queueno.U, mem_resp_queues(queueno).deq.bits)
     }
   }
 
-
-
-
-
-
-
-
-
-  val read_start_index = RegInit(UInt(0, log2Up(NUM_QUEUES+1).W))
-
-
-  val len_already_consumed = RegInit(UInt(0, 64.W))
+  val read_start_index = RegInit(0.U(log2Up(NUM_QUEUES+1).W))
+  val len_already_consumed = RegInit(0.U(64.W))
 
   val remapVecData = Wire(Vec(NUM_QUEUES, UInt(8.W)))
   val remapVecValids = Wire(Vec(NUM_QUEUES, Bool()))
   val remapVecReadys = Wire(Vec(NUM_QUEUES, Bool()))
 
-
   for (queueno <- 0 until NUM_QUEUES) {
-    val remapindex = (UInt(queueno) +& read_start_index) % UInt(NUM_QUEUES)
-    remapVecData(queueno) := mem_resp_queues(remapindex).deq.bits
-    remapVecValids(queueno) := mem_resp_queues(remapindex).deq.valid
-    mem_resp_queues(remapindex).deq.ready := remapVecReadys(queueno)
+    remapVecData(queueno) := 0.U
+    remapVecValids(queueno) := false.B
+    mem_resp_queues(queueno).deq.ready := false.B
+
+    val remapindex = (queueno.U +& read_start_index) % NUM_QUEUES.U
+    for (j <- 0 until NUM_QUEUES) {
+      when (j.U === remapindex) {
+        remapVecData(queueno) := mem_resp_queues(j).deq.bits
+        remapVecValids(queueno) := mem_resp_queues(j).deq.valid
+        mem_resp_queues(j).deq.ready := remapVecReadys(queueno)
+      }
+    }
   }
   io.consumer.output_data := Cat(remapVecData.reverse)
 
@@ -187,15 +186,15 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
   val count_valids = remapVecValids.map(_.asUInt).reduce(_ +& _)
   val unconsumed_bytes_so_far = buf_info_queue.io.deq.bits.len_bytes - len_already_consumed
 
-  val enough_data = Mux(unconsumed_bytes_so_far >= UInt(NUM_QUEUES),
-                        count_valids === UInt(NUM_QUEUES),
+  val enough_data = Mux(unconsumed_bytes_so_far >= NUM_QUEUES.U,
+                        count_valids === NUM_QUEUES.U,
                         count_valids >= unconsumed_bytes_so_far)
 
-  io.consumer.available_output_bytes := Mux(unconsumed_bytes_so_far >= UInt(NUM_QUEUES),
-                                    UInt(NUM_QUEUES),
+  io.consumer.available_output_bytes := Mux(unconsumed_bytes_so_far >= NUM_QUEUES.U,
+                                    NUM_QUEUES.U,
                                     unconsumed_bytes_so_far)
 
-  io.consumer.output_last_chunk := (unconsumed_bytes_so_far <= UInt(NUM_QUEUES))
+  io.consumer.output_last_chunk := (unconsumed_bytes_so_far <= NUM_QUEUES.U)
 
   val read_fire = DecoupledHelper(
     io.consumer.output_ready,
@@ -211,18 +210,18 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
   io.consumer.output_valid := read_fire.fire(io.consumer.output_ready)
 
   for (queueno <- 0 until NUM_QUEUES) {
-    remapVecReadys(queueno) := (UInt(queueno) < io.consumer.user_consumed_bytes) && read_fire.fire
+    remapVecReadys(queueno) := (queueno.U < io.consumer.user_consumed_bytes) && read_fire.fire
   }
 
   when (read_fire.fire) {
-    read_start_index := (read_start_index +& io.consumer.user_consumed_bytes) % UInt(NUM_QUEUES)
+    read_start_index := (read_start_index +& io.consumer.user_consumed_bytes) % NUM_QUEUES.U
   }
 
   buf_info_queue.io.deq.ready := read_fire.fire(buf_info_queue.io.deq.valid) && buf_last
 
   when (read_fire.fire) {
     when (buf_last) {
-      len_already_consumed := UInt(0)
+      len_already_consumed := 0.U
     } .otherwise {
       len_already_consumed := len_already_consumed + io.consumer.user_consumed_bytes
     }

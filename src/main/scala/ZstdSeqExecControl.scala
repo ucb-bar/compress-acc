@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, VecInit}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -26,7 +27,7 @@ class ZstdSeqInfo extends Bundle{
 
 class ZstdSeqExecControl(l2bw: Int)(implicit p: Parameters) extends Module{
   val io = IO(new Bundle{
-    val sequence_in = Decoupled(new ZstdSequence).flip
+    val sequence_in = Flipped(Decoupled(new ZstdSequence))
     val literal_pointer = Input(UInt(64.W)) //receive only once per block
     val literal_pointer_valid = Input(Bool())
     val literal_pointer_dtbuilder = Input(UInt(64.W))
@@ -163,9 +164,7 @@ class ZstdSeqExecControl(l2bw: Int)(implicit p: Parameters) extends Module{
 
   // Queues
   // (1) Queue for literal read information - moved to here because of variable order
-  val lit_src_info_queue_flush = Wire(Bool())
-  val lit_src_info_queue = Module(new Queue(new SnappyDecompressSrcInfo,
-    4, false, false, lit_src_info_queue_flush))
+  val lit_src_info_queue = Module(new Queue(new SnappyDecompressSrcInfo, 4, false, false))
 
   // (2) Queue for write
   val dest_info_queue = Module(new Queue(new SnappyDecompressDestInfo, 4))
@@ -316,7 +315,6 @@ class ZstdSeqExecControl(l2bw: Int)(implicit p: Parameters) extends Module{
   seq_received === num_sequences //&& io.bufs_completed === dispatched_info_counter
 
   val lit_completion = litCount === num_literals && litCount =/= 0.U
-  lit_src_info_queue_flush := false.B //lit_completion
 
   // Dealing with the remaining literals to write
   val last_ll = num_literals - litCount

@@ -2,6 +2,7 @@ package compressacc
 
 import chisel3._
 import chisel3.util._
+import chisel3.util._
 import chisel3.{Printable}
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.util.DecoupledHelper
@@ -678,7 +679,7 @@ class ZstdCompressorFrameHeaderBuilder(implicit p: Parameters) extends ZstdCompr
                       0.U)))
   val frame_header_description_byte = WireInit(0.U(8.W))
   frame_header_description_byte := Cat(fcs_code(1, 0),
-                                       single_segment.asUInt(0),
+                                       single_segment.asUInt,
                                        0.U(1.W),
                                        0.U(1.W),
                                        checksum_flag(0),

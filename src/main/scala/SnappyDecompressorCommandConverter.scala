@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -11,22 +12,22 @@ import freechips.rocketchip.rocket.constants.MemoryOpConstants
 
 class SnappyInternalCommandRep extends Bundle {
   // if not is_copy, then it's a literal CHUNK command
-  val is_copy = Bool(OUTPUT)
-  val copy_offset = UInt(OUTPUT, 32.W)
-  val copy_length = UInt(OUTPUT, 7.W)
-  val final_command = Bool(OUTPUT)
+  val is_copy = Output(Bool())
+  val copy_offset = Output(UInt(32.W))
+  val copy_length = Output(UInt(7.W))
+  val final_command = Output(Bool())
 }
 
 class LiteralChunk extends Bundle {
-  val chunk_data = UInt(OUTPUT, 256.W)
+  val chunk_data = Output(UInt(256.W))
   // could be 7.W but make it easy for now
-  val chunk_size_bytes = UInt(OUTPUT, 9.W)
+  val chunk_size_bytes = Output(UInt(9.W))
 }
 
 class SnappyDecompressorCommandConverter()(implicit p: Parameters) extends Module {
 
   val io = IO(new Bundle {
-    val mem_stream = (new MemLoaderConsumerBundle).flip
+    val mem_stream = Flipped(new MemLoaderConsumerBundle)
     val internal_commands = Decoupled(new SnappyInternalCommandRep)
     val literal_chunks = Decoupled(new LiteralChunk)
   })

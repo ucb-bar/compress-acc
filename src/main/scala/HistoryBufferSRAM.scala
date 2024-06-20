@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, SyncReadMem}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -42,14 +43,14 @@ class HistoryBufferSRAM()(implicit p: Parameters) extends Module with MemoryOpCo
 
   val io = IO(new Bundle {
 
-    val writes_in = (Valid(new HBSRAMWrite)).flip
+    val writes_in = Flipped((Valid(new HBSRAMWrite)))
 
     // these valids are technically not necessary, but useful for debugging/
     // tracking purposes
-    val read_req_in = (Valid(new HBSRAMReadReq)).flip
+    val read_req_in = Flipped((Valid(new HBSRAMReadReq)))
     val read_resp_out = (Valid(new HBSRAMReadResp))
 
-    val read_advance_ptr = (Valid(new HBSRAMAdvanceReadPtr)).flip
+    val read_advance_ptr = Flipped((Valid(new HBSRAMAdvanceReadPtr)))
   })
 
   println(s"HIST BUF OVERPROV FACTOR: ${p(LZ77HistBufOverProvisionFactor)}")
@@ -65,6 +66,10 @@ class HistoryBufferSRAM()(implicit p: Parameters) extends Module with MemoryOpCo
   val recent_history_vec = Array.fill(HIST_BUF_WIDTH) {SyncReadMem(HIST_BUF_ELEMS_PER_CHUNK, UInt(BYTE_SIZE.W))}
   val read_indexing_vec = Wire(Vec(HIST_BUF_WIDTH, UInt(HIST_BUF_INDEX_WIDTH.W)))
   val read_ports_vec = Wire(Vec(HIST_BUF_WIDTH, UInt(BYTE_SIZE.W)))
+
+  for (i <- 0 until HIST_BUF_WIDTH) {
+    read_indexing_vec(i) := DontCare
+  }
 
   // shift amount to remove memindex part of addr (low # of bits required to count HIST BUF WIDTH items)
   val MEMINDEX_BITS = log2Up(HIST_BUF_WIDTH)
@@ -94,7 +99,7 @@ class HistoryBufferSRAM()(implicit p: Parameters) extends Module with MemoryOpCo
     val read_memno = (read_addr_ptr + 32.U - io.read_req_in.bits.offset - elemno.U - 1.U) & MEMINDEX_MASK.U
     read_indexing_vec(read_memno) := read_memaddr
     when (io.read_req_in.valid) {
-      CompressAccelLogger.logInfo("issued hist_read(elemno:%d): from memno:%d,memaddr:%d\n", UInt(elemno), read_memno, read_memaddr)
+      CompressAccelLogger.logInfo("issued hist_read(elemno:%d): from memno:%d,memaddr:%d\n", elemno.U, read_memno, read_memaddr)
     }
   }
 
@@ -106,10 +111,10 @@ class HistoryBufferSRAM()(implicit p: Parameters) extends Module with MemoryOpCo
       val read_memno = (read_result_addr_ptr + 32.U - read_result_offset - elemno.U - 1.U) & MEMINDEX_MASK.U
 
       read_output_vec(elemno) := read_ports_vec(read_memno)
-      val print_read_ports_vec = Wire(0.U(BYTE_SIZE.W))
+      val print_read_ports_vec = Wire(UInt(BYTE_SIZE.W))
       print_read_ports_vec := read_ports_vec(read_memno)
       when (read_result_valid) {
-        CompressAccelLogger.logInfo("got hist_read(elemno:%d): from memno:%d,memaddr:%d = val:0x%x\n", UInt(elemno), read_memno, read_memaddr, print_read_ports_vec)
+        CompressAccelLogger.logInfo("got hist_read(elemno:%d): from memno:%d,memaddr:%d = val:0x%x\n", elemno.U, read_memno, read_memaddr, print_read_ports_vec)
       }
   }
 
@@ -130,6 +135,8 @@ class HistoryBufferSRAM()(implicit p: Parameters) extends Module with MemoryOpCo
 
   for (elemno <- 0 until HIST_BUF_WIDTH) {
     write_ports_write_enable(elemno) := false.B
+    write_indexing_vec(elemno) := DontCare
+    write_ports_vec(elemno) := DontCare
   }
 
   for (elemno <- 0 until HIST_BUF_WIDTH) {
@@ -139,9 +146,11 @@ class HistoryBufferSRAM()(implicit p: Parameters) extends Module with MemoryOpCo
   }
 
   val recent_history_vec_next = Wire(Vec(HIST_BUF_WIDTH, UInt(BYTE_SIZE.W)))
-
   for (elemno <- 0 until HIST_BUF_WIDTH) {
-    recent_history_vec_next(io.writes_in.bits.valid_bytes - UInt(elemno) - 1.U) := io.writes_in.bits.data(((elemno+1) << 3) - 1, elemno << 3)
+    recent_history_vec_next(elemno) := DontCare
+  }
+  for (elemno <- 0 until HIST_BUF_WIDTH) {
+    recent_history_vec_next(io.writes_in.bits.valid_bytes - elemno.U - 1.U) := io.writes_in.bits.data(((elemno+1) << 3) - 1, elemno << 3)
   }
   for (elemno <- 0 until HIST_BUF_WIDTH) {
     when (io.writes_in.valid && (elemno.U(MEMINDEX_BITS.W) < io.writes_in.bits.valid_bytes)) {
@@ -151,10 +160,10 @@ class HistoryBufferSRAM()(implicit p: Parameters) extends Module with MemoryOpCo
       write_indexing_vec(memno) := memaddr
       write_ports_vec(memno) := recent_history_vec_next(elemno)
       write_ports_write_enable(memno) := true.B
-      val print_recent_history_vec = Wire(0.U(BYTE_SIZE.W))
+      val print_recent_history_vec = Wire(UInt(BYTE_SIZE.W))
       //recent_history_vec_next(elemno))
       print_recent_history_vec := recent_history_vec_next(elemno)
-      CompressAccelLogger.logInfo("do_write:mem(memno:%d,memaddr:%d): from rhvn(elemno:%d) = val:0x%x\n", memno, memaddr, UInt(elemno), print_recent_history_vec)
+      CompressAccelLogger.logInfo("do_write:mem(memno:%d,memaddr:%d): from rhvn(elemno:%d) = val:0x%x\n", memno, memaddr, elemno.U, print_recent_history_vec)
     }
   }
 }

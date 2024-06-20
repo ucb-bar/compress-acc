@@ -1,8 +1,9 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
-import chisel3.experimental.DataMirror
+import chisel3.reflect.DataMirror
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
@@ -33,9 +34,9 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
     val userif = Flipped(new L2MemHelperBundle)
     val latency_inject_cycles = Input(UInt(64.W))
 
-    val sfence = Bool(INPUT)
+    val sfence = Input(Bool())
     val ptw = new TLBPTWIO
-    val status = Valid(new MStatus).flip
+    val status = Flipped(Valid(new MStatus))
   })
 
   val (dmem, edge) = outer.masterNode.out.head
@@ -60,7 +61,7 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
 
   val status = Reg(new MStatus)
   when (io.status.valid) {
-    CompressAccelLogger.logInfo(printInfo + " setting status.dprv to: %x compare %x\n", io.status.bits.dprv, UInt(PRV.M))
+    CompressAccelLogger.logInfo(printInfo + " setting status.dprv to: %x compare %x\n", io.status.bits.dprv, PRV.M.U)
     status := io.status.bits
   }
 
@@ -69,17 +70,17 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
   tlb.io.req.bits.vaddr := request_input.bits.addr
   tlb.io.req.bits.size := request_input.bits.size
   tlb.io.req.bits.cmd := request_input.bits.cmd
-  tlb.io.req.bits.passthrough := Bool(false)
+  tlb.io.req.bits.passthrough := false.B
   val tlb_ready = tlb.io.req.ready && !tlb.io.resp.miss
 
   io.ptw <> tlb.io.ptw
   tlb.io.ptw.status := status
   tlb.io.sfence.valid := io.sfence
-  tlb.io.sfence.bits.rs1 := Bool(false)
-  tlb.io.sfence.bits.rs2 := Bool(false)
-  tlb.io.sfence.bits.addr := UInt(0)
-  tlb.io.sfence.bits.asid := UInt(0)
-  tlb.io.kill := Bool(false)
+  tlb.io.sfence.bits.rs1 := false.B
+  tlb.io.sfence.bits.rs2 := false.B
+  tlb.io.sfence.bits.addr := 0.U
+  tlb.io.sfence.bits.asid := 0.U
+  tlb.io.kill := false.B
 
 
   val outstanding_req_addr = Module(new Queue(new L2InternalTracking, outer.numOutstandingRequestsAllowed * 4))
@@ -98,8 +99,8 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
     }
   }
 
-  val addr_mask_check = (UInt(0x1, 64.W) << request_input.bits.size) - UInt(1)
-  val assertcheck = RegNext((!request_input.valid) || ((request_input.bits.addr & addr_mask_check) === UInt(0)))
+  val addr_mask_check = (1.U(64.W) << request_input.bits.size) - 1.U
+  val assertcheck = RegNext((!request_input.valid) || ((request_input.bits.addr & addr_mask_check) === 0.U))
 
   when (!assertcheck) {
     CompressAccelLogger.logInfo(printInfo + " L2IF: access addr must be aligned to write width\n")
@@ -167,13 +168,17 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
 // dmem.a.bits := bundle
   } .elsewhen (request_input.valid) {
     CompressAccelLogger.logInfo(printInfo + " ERR")
-    assert(Bool(false), "ERR")
+    assert(false.B, "ERR")
   }
 
-  val tl_resp_queues = Vec.fill(outer.numOutstandingRequestsAllowed)(
+  val tl_resp_queues = Seq.fill(outer.numOutstandingRequestsAllowed)(
     Module(new Queue(new L2RespInternal, 4, flow=true)).io)
 
-  val current_request_tag_has_response_space = tl_resp_queues(tags_for_issue_Q.io.deq.bits).enq.ready
+// val current_request_tag_has_response_space = tl_resp_queues(tags_for_issue_Q.io.deq.bits).enq.ready
+  val current_request_tag_has_response_space = tl_resp_queues.zipWithIndex.map({ case (q, idx) =>
+    q.enq.ready && (idx.U === tags_for_issue_Q.io.deq.bits)
+  }).reduce(_ || _)
+
 
   val fire_req = DecoupledHelper(
     request_input.valid,
@@ -236,7 +241,11 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
 
 
 
-  val selectQready = tl_resp_queues(response_latency_injection_q.io.deq.bits.source).enq.ready
+// val selectQready = tl_resp_queues(response_latency_injection_q.io.deq.bits.source).enq.ready
+  val selectQready = tl_resp_queues.zipWithIndex.map({ case(q, idx) =>
+    q.enq.ready && (idx.U === response_latency_injection_q.io.deq.bits.source)
+  }).reduce(_ || _)
+
 
   val fire_actual_mem_resp = DecoupledHelper(
     selectQready,
@@ -264,8 +273,12 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
 
 
 
-  val currentQueue = tl_resp_queues(outstanding_req_addr.io.deq.bits.tag)
-  val queueValid = currentQueue.deq.valid
+// val currentQueue = tl_resp_queues(outstanding_req_addr.io.deq.bits.tag)
+// val queueValid = currentQueue.deq.valid
+
+  val queueValid = tl_resp_queues.zipWithIndex.map({ case(q, idx) =>
+    q.deq.valid && (idx.U === outstanding_req_addr.io.deq.bits.tag)
+  }).reduce(_ || _)
 
   val fire_user_resp = DecoupledHelper(
     queueValid,
@@ -273,7 +286,18 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
     outstanding_req_addr.io.deq.valid
   )
 
-  val resultdata = currentQueue.deq.bits.data >> (outstanding_req_addr.io.deq.bits.addrindex << 3)
+// val resultdata = currentQueue.deq.bits.data >> (outstanding_req_addr.io.deq.bits.addrindex << 3)
+
+  val resultdata = tl_resp_queues.zipWithIndex.map({ case(q, idx) =>
+    val is_current_q = (idx.U === outstanding_req_addr.io.deq.bits.tag)
+    val data = Wire(q.deq.bits.data.cloneType)
+    when (is_current_q) {
+      data := q.deq.bits.data >> (outstanding_req_addr.io.deq.bits.addrindex << 3)
+    } .otherwise {
+      data := 0.U
+    }
+    data
+  }).reduce(_ | _)
 
   response_output.bits.data := resultdata
 

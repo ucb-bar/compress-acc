@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -12,10 +13,10 @@ import freechips.rocketchip.rocket.constants.MemoryOpConstants
 class SnappyDecompressorOffchipHistoryLookup()(implicit p: Parameters) extends Module with MemoryOpConstants {
 
   val io = IO(new Bundle {
-    val internal_commands = (Decoupled(new SnappyInternalCommandRep)).flip
-    val literal_chunks = (Decoupled(new LiteralChunk)).flip
+    val internal_commands = Flipped(Decoupled(new SnappyInternalCommandRep))
+    val literal_chunks = Flipped(Decoupled(new LiteralChunk))
     val l2helperUser = new L2MemHelperBundle
-    val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip
+    val decompress_dest_info = Flipped(Decoupled(new SnappyDecompressDestInfo))
 
 
     val internal_commands_out = (Decoupled(new SnappyInternalCommandRep))
@@ -70,7 +71,7 @@ class SnappyDecompressorOffchipHistoryLookup()(implicit p: Parameters) extends M
   )
 
   // pop on final command
-  io.decompress_dest_info.ready := io.internal_commands.fire() && io.internal_commands.bits.final_command
+  io.decompress_dest_info.ready := io.internal_commands.fire && io.internal_commands.bits.final_command
 
   val BASE_OUTPUT_POINTER = io.decompress_dest_info.bits.op
   hist_memloader.io.src_info.bits.ip := (BASE_OUTPUT_POINTER + offset_into_output_so_far) - io.internal_commands.bits.copy_offset
@@ -101,7 +102,7 @@ class SnappyDecompressorOffchipHistoryLookup()(implicit p: Parameters) extends M
     // the above condition is correct because offsets are 1 ... onChipHistLen
     io.internal_commands.ready := intermediate_internal_commands.io.enq.ready
     intermediate_internal_commands.io.enq.valid := io.internal_commands.valid
-    when (io.internal_commands.fire()) {
+    when (io.internal_commands.fire) {
       CompressAccelLogger.logInfo("offchip s1: nearcopy pass: is_copy %d, copy_offset %d, copy_length %d, final_command %d\n",
         io.internal_commands.bits.is_copy,
         io.internal_commands.bits.copy_offset,
@@ -193,7 +194,7 @@ class SnappyDecompressorOffchipHistoryLookup()(implicit p: Parameters) extends M
     // the above condition is correct because offsets are 1 ... onChipHistLen
     final_internal_commands.io.enq.valid := intermediate_internal_commands.io.deq.valid
     intermediate_internal_commands.io.deq.ready := final_internal_commands.io.enq.ready
-    when (final_internal_commands.io.enq.fire()) {
+    when (final_internal_commands.io.enq.fire) {
       CompressAccelLogger.logInfo("offchip s2: nearcopy pass: is_copy %d, copy_offset %d, copy_length %d, final_command %d\n",
         intermediate_internal_commands.io.deq.bits.is_copy,
         intermediate_internal_commands.io.deq.bits.copy_offset,
@@ -227,10 +228,10 @@ class SnappyDecompressorOffchipHistoryLookup()(implicit p: Parameters) extends M
 class SnappyDecompressorCommandExpander()(implicit p: Parameters) extends Module with MemoryOpConstants {
 
   val io = IO(new Bundle {
-    val internal_commands = (Decoupled(new SnappyInternalCommandRep)).flip
-    val literal_chunks = (Decoupled(new LiteralChunk)).flip
+    val internal_commands = Flipped(Decoupled(new SnappyInternalCommandRep))
+    val literal_chunks = Flipped(Decoupled(new LiteralChunk))
     val l2helperUser = new L2MemHelperBundle
-    val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip
+    val decompress_dest_info = Flipped(Decoupled(new SnappyDecompressDestInfo))
 
     val bufs_completed = Output(UInt(64.W))
     val no_writes_inflight = Output(Bool())
@@ -314,17 +315,17 @@ class SnappyDecompressorCommandExpander()(implicit p: Parameters) extends Module
 
   for (elemno <- 0 until 32) {
     when (is_literal) {
-      recent_history_vec_next(write_num_bytes - UInt(elemno) - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
+      recent_history_vec_next(write_num_bytes - elemno.U - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
     } .otherwise {
       //is_copy
       val read_memaddr = (addr_base_ptr + write_num_bytes - offset - elemno.U - 1.U) >> 5
       val read_memno = (addr_base_ptr + write_num_bytes - offset - elemno.U - 1.U) & (0x1F).U
       read_indexing_vec(read_memno) := read_memaddr
       recent_history_vec_next(elemno) := read_ports_vec(read_memno)
-      val print_read_ports_vec = Wire(0.U(8.W))
+      val print_read_ports_vec = Wire(UInt(8.W))
       print_read_ports_vec := read_ports_vec(read_memno)
       when (fire_write.fire) {
-        CompressAccelLogger.logInfo("rhvn(elemno:%d): from memno:%d,memaddr:%d = val:0x%x\n", UInt(elemno), read_memno, read_memaddr, print_read_ports_vec)
+        CompressAccelLogger.logInfo("rhvn(elemno:%d): from memno:%d,memaddr:%d = val:0x%x\n", elemno.U, read_memno, read_memaddr, print_read_ports_vec)
       }
     }
   }
@@ -337,10 +338,10 @@ class SnappyDecompressorCommandExpander()(implicit p: Parameters) extends Module
       write_indexing_vec(memno) := memaddr
       write_ports_vec(memno) := recent_history_vec_next(elemno)
       write_ports_write_enable(memno) := true.B
-      val print_recent_history_vec = Wire(0.U(8.W))
+      val print_recent_history_vec = Wire(UInt(8.W))
       //recent_history_vec_next(elemno))
       print_recent_history_vec := recent_history_vec_next(elemno)
-      CompressAccelLogger.logInfo("mem(memno:%d,memaddr:%d): from rhvn(elemno:%d) = val:0x%x\n", memno, memaddr, UInt(elemno), print_recent_history_vec)
+      CompressAccelLogger.logInfo("mem(memno:%d,memaddr:%d): from rhvn(elemno:%d) = val:0x%x\n", memno, memaddr, elemno.U, print_recent_history_vec)
     }
   }
 

@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, VecInit}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -17,9 +18,9 @@ class SnappyCompressorMemwriter()(implicit p: Parameters) extends Module
   with MemoryOpConstants {
 
   val io = IO(new Bundle {
-    val memwrites_in = Decoupled(new CompressWriterBundle).flip
+    val memwrites_in = Flipped(Decoupled(new CompressWriterBundle))
     val l2io = new L2MemHelperBundle
-    val compress_dest_info = (Decoupled(new SnappyCompressDestInfo)).flip
+    val compress_dest_info = Flipped(Decoupled(new SnappyCompressDestInfo))
 
     val bufs_completed = Output(UInt(64.W))
     val no_writes_inflight = Output(Bool())
@@ -66,19 +67,25 @@ class SnappyCompressorMemwriter()(implicit p: Parameters) extends Module
 
   val NUM_QUEUES = 32
   val QUEUE_DEPTHS = 64
-  val write_start_index = RegInit(UInt(0, log2Up(NUM_QUEUES+1).W))
-  val mem_resp_queues = Vec.fill(NUM_QUEUES)(Module(new Queue(UInt(8.W), QUEUE_DEPTHS)).io)
+  val write_start_index = RegInit(0.U(log2Up(NUM_QUEUES+1).W))
+  val mem_resp_queues = Seq.fill(NUM_QUEUES)(Module(new Queue(UInt(8.W), QUEUE_DEPTHS)).io)
 
   val len_to_write = incoming_writes_Q.io.deq.bits.validbytes
 
   for ( queueno <- 0 until NUM_QUEUES ) {
-    mem_resp_queues((write_start_index +& UInt(queueno)) % UInt(NUM_QUEUES)).enq.bits := incoming_writes_Q.io.deq.bits.data >> ((queueno.U) << 3)
+    val idx = (write_start_index +& queueno.U) % NUM_QUEUES.U
+    mem_resp_queues(queueno).enq.bits := 0.U
+    for (j <- 0 until NUM_QUEUES) {
+      when (j.U === idx) {
+        mem_resp_queues(j).enq.bits := incoming_writes_Q.io.deq.bits.data >> ((queueno.U) << 3)
+      }
+    }
   }
 
 
   val wrap_len_index_wide = write_start_index +& len_to_write
-  val wrap_len_index_end = wrap_len_index_wide % UInt(NUM_QUEUES)
-  val wrapped = wrap_len_index_wide >= UInt(NUM_QUEUES)
+  val wrap_len_index_end = wrap_len_index_wide % NUM_QUEUES.U
+  val wrapped = wrap_len_index_wide >= NUM_QUEUES.U
 
   val all_queues_ready = mem_resp_queues.map(_.enq.ready).reduce(_ && _)
 
@@ -104,22 +111,22 @@ class SnappyCompressorMemwriter()(implicit p: Parameters) extends Module
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     val use_this_queue = Mux(wrapped,
-                             (UInt(queueno) >= write_start_index) || (UInt(queueno) < wrap_len_index_end),
-                             (UInt(queueno) >= write_start_index) && (UInt(queueno) < wrap_len_index_end)
+                             (queueno.U >= write_start_index) || (queueno.U < wrap_len_index_end),
+                             (queueno.U >= write_start_index) && (queueno.U < wrap_len_index_end)
                             )
     mem_resp_queues(queueno).enq.valid := input_fire_allqueues.fire && use_this_queue
   }
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     when (mem_resp_queues(queueno).deq.valid) {
-      CompressAccelLogger.logInfo("qi%d,0x%x\n", UInt(queueno), mem_resp_queues(queueno).deq.bits)
+      CompressAccelLogger.logInfo("qi%d,0x%x\n", queueno.U, mem_resp_queues(queueno).deq.bits)
     }
   }
 
 
 
 
-  val read_start_index = RegInit(UInt(0, log2Up(NUM_QUEUES+1).W))
+  val read_start_index = RegInit(0.U(log2Up(NUM_QUEUES+1).W))
 
   val remapVecData = Wire(Vec(NUM_QUEUES, UInt(8.W)))
   val remapVecValids = Wire(Vec(NUM_QUEUES, Bool()))
@@ -127,10 +134,18 @@ class SnappyCompressorMemwriter()(implicit p: Parameters) extends Module
 
 
   for (queueno <- 0 until NUM_QUEUES) {
-    val remapindex = (UInt(queueno) +& read_start_index) % UInt(NUM_QUEUES)
-    remapVecData(queueno) := mem_resp_queues(remapindex).deq.bits
-    remapVecValids(queueno) := mem_resp_queues(remapindex).deq.valid
-    mem_resp_queues(remapindex).deq.ready := remapVecReadys(queueno)
+    remapVecData(queueno) := 0.U
+    remapVecValids(queueno) := false.B
+    mem_resp_queues(queueno).deq.ready := false.B
+
+    val remapindex = (queueno.U +& read_start_index) % NUM_QUEUES.U
+    for (j <- 0 until NUM_QUEUES) {
+      when (j.U === remapindex) {
+        remapVecData(queueno) := mem_resp_queues(j).deq.bits
+        remapVecValids(queueno) := mem_resp_queues(j).deq.valid
+        mem_resp_queues(j).deq.ready := remapVecReadys(queueno)
+      }
+    }
   }
 
   val count_valids = remapVecValids.map(_.asUInt).reduce(_ +& _)
@@ -234,11 +249,11 @@ class SnappyCompressorMemwriter()(implicit p: Parameters) extends Module
   )
 
   for (queueno <- 0 until NUM_QUEUES) {
-    remapVecReadys(queueno) := (UInt(queueno) < bytes_to_write) && mem_write_fire.fire
+    remapVecReadys(queueno) := (queueno.U < bytes_to_write) && mem_write_fire.fire
   }
 
   when (mem_write_fire.fire) {
-    read_start_index := (read_start_index +& bytes_to_write) % UInt(NUM_QUEUES)
+    read_start_index := (read_start_index +& bytes_to_write) % NUM_QUEUES.U
     backend_bytes_written := backend_bytes_written + bytes_to_write
     backend_bytes_written := backend_bytes_written + bytes_to_write
     CompressAccelLogger.logInfo("[memwriter-snappycomp] writefire: addr: 0x%x, data 0x%x, size %d\n",

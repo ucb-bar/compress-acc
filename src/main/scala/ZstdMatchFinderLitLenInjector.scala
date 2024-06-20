@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, VecInit}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -15,7 +16,7 @@ import freechips.rocketchip.tilelink._
 
 class ZstdMatchFinderLitLenInjector()(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
-    val memwrites_in = Decoupled(new CompressWriterBundle).flip
+    val memwrites_in = Flipped(Decoupled(new CompressWriterBundle))
 
     val seq_memwrites_out = Decoupled(new CompressWriterBundle)
     val lit_memwrites_out = Decoupled(new CompressWriterBundle)

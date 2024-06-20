@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, VecInit, dontTouch}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -12,9 +13,9 @@ import freechips.rocketchip.tilelink._
 // Instead of right-shifting after consuming the stream, have to left-stream.
 class BufferManagerReverse(l2bw: Int)(implicit p: Parameters) extends Module{
     val io = IO(new Bundle{
-        val input_stream_deq = Decoupled(UInt(l2bw.W)).flip
+        val input_stream_deq = Flipped(Decoupled(UInt(l2bw.W)))
         val bits_consumed = Input(UInt(log2Up(l2bw+1).W))
-        val flush = Bool(INPUT)
+        val flush = Input(Bool())
 
         val most_recent_stream = Output(UInt(l2bw.W))
         val first_stream_received = Output(Bool())

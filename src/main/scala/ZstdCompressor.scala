@@ -1,6 +1,7 @@
 package compressacc
 
 import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._

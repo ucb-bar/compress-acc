@@ -1,6 +1,7 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, SyncReadMem}
 import chisel3.util.{PriorityEncoder}
 import freechips.rocketchip.tile._
@@ -34,11 +35,11 @@ class HashTableWriteRequest extends Bundle {
 
 class HashTableBasic(numEntriesLog2HW: Int = 14)(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
-    val read_req = (new HashTableReadRequest).flip
-    val read_resp = (new HashTableReadResult)
-    val write_req = Valid(new HashTableWriteRequest).flip
-    val MAX_OFFSET_ALLOWED = UInt(INPUT, 64.W)
-    val RUNTIME_HT_NUM_ENTRIES_LOG2 = UInt(INPUT, 5.W)
+    val read_req = Flipped((new HashTableReadRequest))
+    val read_resp = new HashTableReadResult
+    val write_req = Flipped(Valid(new HashTableWriteRequest))
+    val MAX_OFFSET_ALLOWED = Input(UInt(64.W))
+    val RUNTIME_HT_NUM_ENTRIES_LOG2 = Input(UInt(5.W))
   })
 
   val numEntriesHW = 1 << numEntriesLog2HW
@@ -126,28 +127,32 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
   val io = IO(new Bundle{
     val write_snappy_header = Input(Bool())
 
-    val memloader_in = (new MemLoaderConsumerBundle).flip
-    val memloader_optional_hbsram_in = Valid(new HBSRAMWrite).flip
+    val memloader_in = Flipped((new MemLoaderConsumerBundle))
+    val memloader_optional_hbsram_in = Flipped(Valid(new HBSRAMWrite))
     // for each request, we need to be provided with the total input len
-    val src_info = Decoupled(new StreamInfo).flip
+    val src_info = Flipped(Decoupled(new StreamInfo))
 
     val memwrites_out = Decoupled(new CompressWriterBundle)
-    val MAX_OFFSET_ALLOWED = UInt(INPUT, 64.W)
-    val RUNTIME_HT_NUM_ENTRIES_LOG2 = UInt(INPUT, 5.W)
+    val MAX_OFFSET_ALLOWED = Input(UInt(64.W))
+    val RUNTIME_HT_NUM_ENTRIES_LOG2 = Input(UInt(5.W))
   })
 
   val hash_table = Module(new HashTableBasic())
   hash_table.io.MAX_OFFSET_ALLOWED := io.MAX_OFFSET_ALLOWED
   hash_table.io.RUNTIME_HT_NUM_ENTRIES_LOG2 := io.RUNTIME_HT_NUM_ENTRIES_LOG2
+  hash_table.io.read_req.current_absolute_addr := DontCare
+  hash_table.io.read_req.unhashed_input_key := DontCare
+
   val history_buffer = Module(new HistoryBufferSRAM)
   history_buffer.io.writes_in <> io.memloader_optional_hbsram_in
+  history_buffer.io.read_advance_ptr := DontCare
 
   val skip_amt = RegInit(32.U(10.W))
   val skip_bytes = skip_amt >> 5
 
-  when (skip_amt === UInt(16*32)) {
+  when (skip_amt === (16*32).U) {
     CompressAccelLogger.logInfo("skip_amt @ max\n")
-  } .elsewhen (skip_amt >= UInt(16*32)) {
+  } .elsewhen (skip_amt >= (16*32).U) {
     CompressAccelLogger.logInfo("WARN: skip_amt EXCEEDED max: %d\n", skip_amt)
   }
 
@@ -390,7 +395,7 @@ class LZ77HashMatcher()(implicit p: Parameters) extends Module {
         val hist_val = hist_as_bytevec(elemno)
         val curr_val = memloader_as_bytevec(elemno)
         CompressAccelLogger.logInfo("elemno: %d, hist 0x%x, current 0x%x\n",
-            UInt(elemno),
+            elemno.U,
             hist_val,
             curr_val
         )

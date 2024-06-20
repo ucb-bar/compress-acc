@@ -1,7 +1,8 @@
 // Reused Snappy Decompressor's OffchipHistoryLookup Design
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
 import org.chipsalliance.cde.config._
@@ -15,17 +16,17 @@ class ZstdOffchipHistoryLookup(history_len: Int)(implicit p: Parameters)
 
   val io = IO(new Bundle{
     val algorithm = Input(Bool())
-    val internal_commands = (Decoupled(new ZstdSeqInfo)).flip //from SeqExecLoader
-    val literal_chunks = (Decoupled(new LiteralChunk)).flip //from SeqExecLoader
+    val internal_commands = Flipped(Decoupled(new ZstdSeqInfo)) //from SeqExecLoader
+    val literal_chunks = Flipped(Decoupled(new LiteralChunk)) //from SeqExecLoader
     // val final_command = (Decoupled(Bool())).flip //from SeqExecLoader
-    val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip //from SeqExecControl
+    val decompress_dest_info = Flipped(Decoupled(new SnappyDecompressDestInfo)) //from SeqExecControl
 
     val l2helperUser = new L2MemHelperBundle
 
     val internal_commands_out = (Decoupled(new ZstdSeqInfo)) //to SeqExecWriter
     val literal_chunks_out = (Decoupled(new LiteralChunk)) //to SeqExecWriter
     // val final_command_out = (Decoupled(Bool())) //to SeqExecWriter
-    val MAX_OFFSET_ALLOWED = UInt(INPUT, 64.W)
+    val MAX_OFFSET_ALLOWED = Input(UInt(64.W))
   })
   val nosnappy = p(NoSnappy)
 
