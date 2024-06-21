@@ -5,10 +5,11 @@
 
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig, HellaCacheArbiter}
 import freechips.rocketchip.util.DecoupledHelper
@@ -33,7 +34,7 @@ class ZstdSeqExec(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(o
 }
 
 class ZstdSeqExecImp(outer: ZstdSeqExec)(implicit p: Parameters) extends LazyRoCCModuleImp(outer) with MemoryOpConstants {
-  io.interrupt := Bool(false)
+  io.interrupt := Bool(false.B)
   
   val control_unit = Module(new ZstdSeqExecControl(128))
   control_unit.io.rocc_in <> io.cmd
@@ -98,7 +99,7 @@ class ZstdSeqExecImp(outer: ZstdSeqExec)(implicit p: Parameters) extends LazyRoC
   outer.mem_decomp_readbackref.module.io.status.bits := control_unit.io.dmem_status_out.bits.status
   io.ptw(2) <> outer.mem_decomp_readbackref.module.io.ptw
 
-  io.busy := Bool(false)
+  io.busy := Bool(false.B)
 }
 class WithZstdSeqExec extends Config ((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))

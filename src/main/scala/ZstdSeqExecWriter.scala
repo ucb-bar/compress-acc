@@ -1,9 +1,10 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
@@ -17,11 +18,11 @@ literal_chunk = Decoupled(new literal_chunk)
 class ZstdSeqExecWriter32(history_len: Int)(implicit p: Parameters) extends Module with MemoryOpConstants {
   val io = IO(new Bundle {
     // Inputs from ZstdSeqExecLoader
-    val internal_commands = (Decoupled(new ZstdSeqInfo)).flip
-    val literal_chunks = (Decoupled(new LiteralChunk)).flip
-    val final_command = (Decoupled(Bool())).flip
+    val internal_commands = Flipped(Decoupled(new ZstdSeqInfo))
+    val literal_chunks = Flipped(Decoupled(new LiteralChunk))
+    val final_command = Flipped(Decoupled(Bool()))
     // Input from ZstdSeqExecDecoder
-    val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip
+    val decompress_dest_info = Flipped(Decoupled(new SnappyDecompressDestInfo))
 
     // Output to outer mem
     val l2helperUser = new L2MemHelperBundle
@@ -92,7 +93,7 @@ class ZstdSeqExecWriter32(history_len: Int)(implicit p: Parameters) extends Modu
 
   for (elemno <- 0 until 32) {
     when (is_literal) {
-      recent_history_vec_next(write_num_bytes - UInt(elemno) - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
+      recent_history_vec_next(write_num_bytes - elemno.U - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
     } .otherwise {//is_copy
       val read_memaddr = (addr_base_ptr + write_num_bytes - offset - elemno.U - 1.U) >> 5
       val read_memno = (addr_base_ptr + write_num_bytes - offset - elemno.U - 1.U) & (0x1F).U
@@ -162,11 +163,11 @@ class ZstdSeqExecWriter32(history_len: Int)(implicit p: Parameters) extends Modu
 class ZstdSeqExecWriter16(history_len: Int)(implicit p: Parameters) extends Module with MemoryOpConstants {
   val io = IO(new Bundle {
     // Inputs from ZstdSeqExecLoader
-    val internal_commands = (Decoupled(new ZstdSeqInfo)).flip
-    val literal_chunks = (Decoupled(new LiteralChunk)).flip
+    val internal_commands = Flipped(Decoupled(new ZstdSeqInfo))
+    val literal_chunks = Flipped(Decoupled(new LiteralChunk))
     // val final_command = (Decoupled(Bool())).flip
     // Input from ZstdSeqExecDecoder
-    val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip
+    val decompress_dest_info = Flipped(Decoupled(new SnappyDecompressDestInfo))
 
     // Output to outer mem
     val l2helperUser = new L2MemHelperBundle
@@ -235,7 +236,7 @@ class ZstdSeqExecWriter16(history_len: Int)(implicit p: Parameters) extends Modu
 
   for (elemno <- 0 until 16) {
     when (is_literal) {
-      recent_history_vec_next(write_num_bytes - UInt(elemno) - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
+      recent_history_vec_next(write_num_bytes - elemno.U - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
     } .otherwise {//is_copy
       val read_memaddr = (addr_base_ptr + write_num_bytes - offset - elemno.U - 1.U) >> 4
       val read_memno = (addr_base_ptr + write_num_bytes - offset - elemno.U - 1.U) & (0xF).U

@@ -1,25 +1,26 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, dontTouch}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
 /*
 class LiteralChunk extends Bundle{
-  val chunk_data = UInt(OUTPUT, 256.W)
-  val chunk_size_bytes = UInt(OUTPUT, 8.W)
+  val chunk_data = Output(UInt(256.W))
+  val chunk_size_bytes = Output(UInt(8.W))
 }
 */
 class ZstdSeqExecLoader(l2bw: Int)(implicit p: Parameters) extends Module{
   val io = IO(new Bundle{
     val algorithm = Input(UInt(1.W))
 
-    val mem_stream = (new MemLoaderConsumerBundle).flip
-    val command_in = (Decoupled(new ZstdSeqInfo)).flip
+    val mem_stream = Flipped((new MemLoaderConsumerBundle))
+    val command_in = Flipped((Decoupled(new ZstdSeqInfo)))
     val num_literals_seqexec = Input(UInt(64.W))
     val completion_seqexec = Input(Bool())
 
@@ -35,8 +36,7 @@ class ZstdSeqExecLoader(l2bw: Int)(implicit p: Parameters) extends Module{
 
   // Zstd modules
   // Queue (1) Literal data queue: receives literals from the memloader
-  val litdata_queue_flush = false.B //io.lit_completion
-  val litdata_queue = Module(new Queue(new LiteralChunk, 5, false, false, litdata_queue_flush || reset))
+  val litdata_queue = Module(new Queue(new LiteralChunk, 5, false, false))
   // Queue (2) Command queue: receives sequences (LL and ML sliced into (L2 bandwidth)/8 bytes)
   val command_queue = Module(new Queue(new ZstdSeqInfo, 5))
 

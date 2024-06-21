@@ -1,9 +1,10 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, SyncReadMem}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
@@ -13,10 +14,10 @@ import freechips.rocketchip.rocket.constants.MemoryOpConstants
 class SnappyDecompressorCommandExpanderSRAM()(implicit p: Parameters) extends Module with MemoryOpConstants {
 
   val io = IO(new Bundle {
-    val internal_commands = (Decoupled(new SnappyInternalCommandRep)).flip
-    val literal_chunks = (Decoupled(new LiteralChunk)).flip
+    val internal_commands = Flipped(Decoupled(new SnappyInternalCommandRep))
+    val literal_chunks = Flipped(Decoupled(new LiteralChunk))
     val l2helperUser = new L2MemHelperBundle
-    val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip
+    val decompress_dest_info = Flipped(Decoupled(new SnappyDecompressDestInfo))
 
     val bufs_completed = Output(UInt(64.W))
     val no_writes_inflight = Output(Bool())
@@ -117,10 +118,10 @@ class SnappyDecompressorCommandExpanderSRAM()(implicit p: Parameters) extends Mo
       val read_memno = (addr_base_ptr_s1 + io.internal_commands.bits.copy_length - offset_s1 - elemno.U - 1.U) & MEMINDEX_MASK.U
       read_indexing_vec(read_memno) := read_memaddr
       // recent_history_vec_next(elemno) := read_ports_vec(read_memno)
-      // val print_read_ports_vec = Wire(0.U(BYTE_SIZE.W))
+      // val print_read_ports_vec = Wire(UInt(BYTE_SIZE.W))
       // print_read_ports_vec := read_ports_vec(read_memno)
       when (s1_can_proceed_wire) {
-        CompressAccelLogger.logInfo("s1: issued hist_read(elemno:%d): from memno:%d,memaddr:%d\n", UInt(elemno), read_memno, read_memaddr)
+        CompressAccelLogger.logInfo("s1: issued hist_read(elemno:%d): from memno:%d,memaddr:%d\n", elemno.U, read_memno, read_memaddr)
       }
     }
   }
@@ -261,7 +262,7 @@ class SnappyDecompressorCommandExpanderSRAM()(implicit p: Parameters) extends Mo
 
   for (elemno <- 0 until HIST_BUF_WIDTH) {
     when (is_literal_s2) {
-      recent_history_vec_next(write_num_bytes_s2 - UInt(elemno) - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
+      recent_history_vec_next(write_num_bytes_s2 - elemno.U - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
     } .otherwise {
       //is_copy
       val read_memaddr = (addr_base_ptr_s2 + write_num_bytes_s2 - offset_s2 - elemno.U - 1.U) >> MEMINDEX_BITS
@@ -271,14 +272,14 @@ class SnappyDecompressorCommandExpanderSRAM()(implicit p: Parameters) extends Mo
       } .otherwise {
         recent_history_vec_next(elemno) := read_ports_vec(read_memno)
       }
-      val print_read_ports_vec = Wire(0.U(BYTE_SIZE.W))
+      val print_read_ports_vec = Wire(UInt(BYTE_SIZE.W))
       when (s2_stall_in_progress) {
         print_read_ports_vec := read_ports_vec_s2_stall(read_memno)
       } .otherwise {
         print_read_ports_vec := read_ports_vec(read_memno)
       }
       when (fire_write_s2.fire) {
-        CompressAccelLogger.logInfo("s2: rhvn(elemno:%d): from memno:%d,memaddr:%d = val:0x%x\n", UInt(elemno), read_memno, read_memaddr, print_read_ports_vec)
+        CompressAccelLogger.logInfo("s2: rhvn(elemno:%d): from memno:%d,memaddr:%d = val:0x%x\n", elemno.U, read_memno, read_memaddr, print_read_ports_vec)
       }
     }
   }
@@ -291,10 +292,10 @@ class SnappyDecompressorCommandExpanderSRAM()(implicit p: Parameters) extends Mo
       write_indexing_vec(memno) := memaddr
       write_ports_vec(memno) := recent_history_vec_next_with_bypass(elemno)
       write_ports_write_enable(memno) := true.B
-      val print_recent_history_vec = Wire(0.U(BYTE_SIZE.W))
+      val print_recent_history_vec = Wire(UInt(BYTE_SIZE.W))
       //recent_history_vec_next(elemno))
       print_recent_history_vec := recent_history_vec_next_with_bypass(elemno)
-      CompressAccelLogger.logInfo("s2: mem(memno:%d,memaddr:%d): from rhvnwb(elemno:%d) = val:0x%x\n", memno, memaddr, UInt(elemno), print_recent_history_vec)
+      CompressAccelLogger.logInfo("s2: mem(memno:%d,memaddr:%d): from rhvnwb(elemno:%d) = val:0x%x\n", memno, memaddr, elemno.U, print_recent_history_vec)
     }
   }
 

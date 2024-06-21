@@ -1,9 +1,10 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, VecInit}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
@@ -12,16 +13,16 @@ import freechips.rocketchip.tilelink._
 import chisel3.dontTouch
 /*
 class MemLoaderConsumerBundle extends Bundle {
-  val user_consumed_bytes = UInt(INPUT, log2Up(16+1).W)
-  val available_output_bytes = UInt(OUTPUT, log2Up(16+1).W)
-  val output_valid = Bool(OUTPUT)
-  val output_ready = Bool(INPUT)
-  val output_data = UInt(OUTPUT, (16*8).W)
-  val output_last_chunk = Bool(OUTPUT)
+  val user_consumed_bytes = Input(UInt(log2Up(16+1).W))
+  val available_output_bytes = Output(UInt(log2Up(16+1).W))
+  val output_valid = Output(Bool())
+  val output_ready = Input(Bool())
+  val output_data = Output(UInt((16*8).W))
+  val output_last_chunk = Output(Bool())
 }
 class DTEntryChunk extends Bundle{
-  val chunk_data = UInt(OUTPUT, 128.W)
-  val chunk_size_bytes = UInt(OUTPUT, 8,W)
+  val chunk_data = Output(UInt(128.W))
+  val chunk_size_bytes = Output(UInt(8,W))
   val tableType = UInt(2.W) //0: LL, 1: Off, 2: ML
   val is_final_entry = Bool() //Indicates the final entry of the last DT(probably ML DT)
 }
@@ -35,8 +36,8 @@ class DTAddressBundle extends Bundle{
 }
 */
 class DTEntryChunk32 extends Bundle{
-  val chunk_data = UInt(OUTPUT, 256.W)
-  val chunk_size_bytes = UInt(OUTPUT, 8.W)
+  val chunk_data = Output(UInt(256.W))
+  val chunk_size_bytes = Output(UInt(8.W))
   val tableType = UInt(2.W) //0: LL, 1: Off, 2: ML
   val is_final_entry = Bool() //Indicates the final entry of the last DT(probably ML DT)
 }
@@ -72,7 +73,7 @@ class ZstdDTBuilder(l2bw: Int)(implicit p: Parameters) extends Module{
         // To block decoder or Huffman unit
         val trigger_ready = Output(Bool())
 
-        val input_stream = (new MemLoaderConsumerBundle).flip //from memloader
+        val input_stream = Flipped(new MemLoaderConsumerBundle) //from memloader
         // val bufs_completed = Input(UInt(64.W)) //from ZstdDTBuilderWriter
         // val no_writes_inflight = Input(Bool()) //from ZstdDTBuilderWriter
         val table_in_use = Input(Bool()) //from DTReader
@@ -209,40 +210,52 @@ class ZstdDTBuilder(l2bw: Int)(implicit p: Parameters) extends Module{
     val input_src_info_nmb_enq_count = RegInit(0.U(32.W))
     val input_src_info_inside_count = RegInit(0.U(3.W))
     val input_src_info_queue_flush = state===3.U
-    val input_src_info_queue = Module(new Queue(new SnappyDecompressSrcInfo, 4, false, false, input_src_info_queue_flush || reset)) //request data to memloader
+    val input_src_info_queue = Module(new Queue(new SnappyDecompressSrcInfo, 4, false, false)) //request data to memloader
+    input_src_info_queue.reset := reset.asBool || input_src_info_queue_flush
+
+
     val input_src_info_nmb_queue = Module(new Queue(new SnappyDecompressSrcInfo, 4))
     io.input_src_info <> input_src_info_nmb_queue.io.deq
     input_src_info_nmb_queue.io.enq <> input_src_info_queue.io.deq
+
     // input_stream_queue
     val input_stream_requests_inflight = RegInit(0.U(3.W))
     val input_stream_enq_count = RegInit(0.U(32.W))
     val input_stream_queue_flush = state===3.U
-    val input_stream_queue = Module(new Queue(UInt(l2bw.W), 4, false, false, input_stream_queue_flush || reset)) //receive data from memloader
+    val input_stream_queue = Module(new Queue(UInt(l2bw.W), 4, false, false)) //receive data from memloader
+    input_stream_queue.reset := reset.asBool || input_stream_queue_flush
+
     // Queue-related logics
     val input_src_info_enq_fire = input_src_info_queue.io.enq.ready && input_src_info_queue.io.enq.valid
     val input_src_info_deq_fire = input_src_info_queue.io.deq.ready && input_src_info_queue.io.deq.valid
     val input_src_info_nmb_enq_fire = input_src_info_nmb_queue.io.enq.ready && input_src_info_nmb_queue.io.enq.valid
+
     when(input_src_info_enq_fire && !input_src_info_deq_fire){
         input_src_info_inside_count := input_src_info_inside_count + 1.U
     }.elsewhen(!input_src_info_enq_fire && input_src_info_deq_fire){
         input_src_info_inside_count := input_src_info_inside_count - 1.U
     }
+
     when(input_src_info_nmb_enq_fire){
         input_src_info_nmb_enq_count := input_src_info_nmb_enq_count + 1.U
     }
+
     val input_stream_queue_enq_fire = input_stream_queue.io.enq.ready && input_stream_queue.io.enq.valid
     val input_stream_queue_deq_fire = input_stream_queue.io.deq.ready && input_stream_queue.io.deq.valid
+
     when(input_src_info_enq_fire && !input_stream_queue_deq_fire){
         input_stream_requests_inflight := input_stream_requests_inflight + 1.U
     }.elsewhen(!input_src_info_enq_fire && input_stream_queue_deq_fire){
         input_stream_requests_inflight := input_stream_requests_inflight - 1.U
     }
+
     when(input_stream_queue_enq_fire ||
         state===3.U && input_stream_queue.io.enq.valid){
         input_stream_enq_count := input_stream_enq_count + 1.U
     }
 
     val bitstream_requests_so_far = RegInit(0.U(16.W))
+
     when(input_src_info_queue.io.enq.ready && input_src_info_queue.io.enq.valid){
         bitstream_requests_so_far := bitstream_requests_so_far + 1.U
     }
@@ -281,10 +294,10 @@ class ZstdDTBuilder(l2bw: Int)(implicit p: Parameters) extends Module{
         // "Sequence section header decoding"-related variables
     val requested_l2bw = RegInit(false.B)
         // "DT building"-related variables
-    val PREDEFINED = UInt(0)
-    val RLE = UInt(1)
-    val FSE = UInt(2)
-    val REPEAT = UInt(3)
+    val PREDEFINED = 0.U
+    val RLE = 1.U
+    val FSE = 2.U
+    val REPEAT = 3.U
     val dt_start_address = Wire(UInt(64.W))
     dt_start_address := Mux(block_count(0)===0.U, dt_addr0(building_order), dt_addr1(building_order))
     val dt_build_start_trigger = RegInit(true.B)

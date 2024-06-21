@@ -1,9 +1,10 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig, HellaCacheArbiter}
 import freechips.rocketchip.util.DecoupledHelper
@@ -50,7 +51,7 @@ class ZstdMemcopy()(implicit p: Parameters) extends Module {
       io.src_info.bits.isize)
   }
 
-  val memwriter = Module(new ZstdCompressorMemWriter(writeCmpFlag=false))
+  val memwriter = Module(new ZstdCompressorMemWriter(writeCmpFlag=false, printinfo="zstdmemcpy-memwriter"))
   io.l2io_write <> memwriter.io.l2io
   memwriter.io.dest_info <> io.dst_info
 

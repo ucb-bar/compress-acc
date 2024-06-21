@@ -1,9 +1,10 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable, VecInit}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
@@ -12,14 +13,14 @@ import freechips.rocketchip.tilelink._
 /* 
 class ZstdSeqInfo: {is_match, ll, ml, offset}
 class LiteralChunk extends Bundle {
-  val chunk_data = UInt(OUTPUT, 256.W)
+  val chunk_data = Output(UInt(256.W)
   // could be 7.W but make it easy for now
-  val chunk_size_bytes = UInt(OUTPUT, 9.W)
+  val chunk_size_bytes = Output(UInt(9.W)
 }
 */
 class DTEntryChunk extends Bundle{
-	val chunk_data = UInt(OUTPUT, 128.W)
-	val chunk_size_bytes = UInt(OUTPUT, 8.W)
+	val chunk_data = Output(UInt(128.W))
+	val chunk_size_bytes = Output(UInt(8.W))
 	val tableType = UInt(2.W) //0: LL, 1: Off, 2: ML
 	val is_final_entry = Bool() //Indicates the final entry of the last DT(probably ML DT)
 }
@@ -27,8 +28,8 @@ class DTEntryChunk extends Bundle{
 class ZstdDTBuilderWriter32()(implicit p: Parameters) extends Module with MemoryOpConstants {
 	val io = IO(new Bundle {
 		// Inputs from ZstdDTBuilder
-		val dt_entry = (Decoupled(new DTEntryChunk32)).flip
-		val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip
+		val dt_entry = Flipped(Decoupled(new DTEntryChunk32))
+		val decompress_dest_info = Flipped((Decoupled(new SnappyDecompressDestInfo)))
 
 		// Output to outer mem
 		val l2helperUser = new L2MemHelperBundle
@@ -72,7 +73,7 @@ class ZstdDTBuilderWriter32()(implicit p: Parameters) extends Module with Memory
 
 	// for literal writes, advance pointer and write to the mems
 	for (elemno <- 0 until 32) {
-		recent_history_vec_next(write_num_bytes - UInt(elemno) - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
+		recent_history_vec_next(write_num_bytes - elemno.U - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
 	}
 
 	for (elemno <- 0 until 32) {
@@ -134,8 +135,8 @@ class ZstdDTBuilderWriter32()(implicit p: Parameters) extends Module with Memory
 class ZstdDTBuilderWriter()(implicit p: Parameters) extends Module with MemoryOpConstants {
 	val io = IO(new Bundle {
 		// Inputs from ZstdDTBuilder
-		val dt_entry = (Decoupled(new DTEntryChunk)).flip
-		val decompress_dest_info = (Decoupled(new SnappyDecompressDestInfo)).flip
+		val dt_entry = Flipped(Decoupled(new DTEntryChunk))
+		val decompress_dest_info = Flipped(Decoupled(new SnappyDecompressDestInfo))
 
 		// Output to outer mem
 		val l2helperUser = new L2MemHelperBundle
@@ -179,7 +180,7 @@ class ZstdDTBuilderWriter()(implicit p: Parameters) extends Module with MemoryOp
 
 	// for literal writes, advance pointer and write to the mems
 	for (elemno <- 0 until 16) {
-		recent_history_vec_next(write_num_bytes - UInt(elemno) - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
+		recent_history_vec_next(write_num_bytes - elemno.U - 1.U) := literal_data(((elemno+1) << 3) - 1, elemno << 3)
 	}
 
 	for (elemno <- 0 until 16) {

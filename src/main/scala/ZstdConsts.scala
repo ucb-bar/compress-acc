@@ -1,6 +1,7 @@
 package compressacc
 
 import chisel3._
+import chisel3.util._
 
 object ZstdConsts {
   val ZSTD_WINDOWLOG_ABSOLUTEMIN = 10

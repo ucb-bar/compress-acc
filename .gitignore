@@ -8,3 +8,6 @@ software/zstd
 **/*.log
 **/logs
 **/*.csv
+software-zstd/compress/benchmark_data.h
+.bsp/**
+.scala-build/**

@@ -6,7 +6,7 @@
 #include "rocc.h"
 #include <stdbool.h>
 
-#define DECOMPRESS_OPCODE 2
+#define DECOMPRESS_OPCODE 0
 
 #define ZSTD_ALGORITHM 0
 #define SNAPPY_ALGORITHM 1

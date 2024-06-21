@@ -1,9 +1,10 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig, HellaCacheArbiter}
 import freechips.rocketchip.util.DecoupledHelper
@@ -38,7 +39,7 @@ class SnappyCompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
 class SnappyCompressorImp(outer: SnappyCompressor)(implicit p: Parameters) extends LazyRoCCModuleImp(outer)
 with MemoryOpConstants {
 
-  io.interrupt := Bool(false)
+  io.interrupt := false.B
 
   val cmd_router = Module(new SnappyCompressorCommandRouter)
   cmd_router.io.rocc_in <> io.cmd
@@ -116,6 +117,6 @@ with MemoryOpConstants {
   outer.mem_comp_writer.module.io.status.bits := cmd_router.io.dmem_status_out.bits.status
   io.ptw(1) <> outer.mem_comp_writer.module.io.ptw
 
-  io.busy := Bool(false)
+  io.busy := false.B
 }
 

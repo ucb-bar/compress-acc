@@ -1,9 +1,10 @@
 package compressacc
 
-import Chisel._
+import chisel3._
+import chisel3.util._
 import chisel3.{Printable}
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
@@ -16,18 +17,18 @@ class SnappyDecompressDestInfo extends Bundle {
 }
 
 class SnappyDecompressorCommandRouter()(implicit p: Parameters) extends Module {
-  val FUNCT_SFENCE = UInt(0)
+  val FUNCT_SFENCE = 0.U
 
-  val FUNCT_SRC_INFO = UInt(1)
-  val FUNCT_DEST_INFO_AND_START = UInt(2)
-  val FUNCT_CHECK_COMPLETION = UInt(3)
-  val FUNCT_SET_ONCHIP_HIST = UInt(4)
+  val FUNCT_SRC_INFO = 1.U
+  val FUNCT_DEST_INFO_AND_START = 2.U
+  val FUNCT_CHECK_COMPLETION = 3.U
+  val FUNCT_SET_ONCHIP_HIST = 4.U
 
   val io = IO(new Bundle{
-    val rocc_in = Decoupled(new RoCCCommand).flip
+    val rocc_in = Flipped(Decoupled(new RoCCCommand))
     val rocc_out = Decoupled(new RoCCResponse)
 
-    val sfence_out = Bool(OUTPUT)
+    val sfence_out = Output(Bool())
     val dmem_status_out = Valid(new RoCCCommand)
 
     val decompress_src_info = Decoupled(new StreamInfo)
