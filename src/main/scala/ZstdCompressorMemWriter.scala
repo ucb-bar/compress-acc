@@ -20,7 +20,7 @@ import freechips.rocketchip.tilelink._
 
 
 
-class ZstdCompressorMemWriter(val circularQueDepth: Int = 16, val writeCmpFlag: Boolean = true)
+class ZstdCompressorMemWriter(val circularQueDepth: Int = 16, val writeCmpFlag: Boolean = true, val printinfo: String = "zcmw")
   (implicit p: Parameters) extends ZstdCompressorModule with MemoryOpConstants {
 
   val io = IO(new Bundle {
@@ -51,7 +51,7 @@ class ZstdCompressorMemWriter(val circularQueDepth: Int = 16, val writeCmpFlag: 
 
   val buf_lens_Q = Module(new Queue(UInt(64.W), 10))
   when (buf_lens_Q.io.enq.fire) {
-    CompressAccelLogger.logInfo("[memwriter-serializer] enqueued buf len: %d\n", buf_lens_Q.io.enq.bits)
+    CompressAccelLogger.logInfo("[" + printinfo + "] enqueued buf len: %d\n", buf_lens_Q.io.enq.bits)
   }
 
   val buf_len_tracker = RegInit(0.U(64.W))
@@ -64,7 +64,7 @@ class ZstdCompressorMemWriter(val circularQueDepth: Int = 16, val writeCmpFlag: 
   }
 
   when (incoming_writes_Q.io.deq.fire) {
-    CompressAccelLogger.logInfo("[memwriter-serializer] dat: 0x%x, bytes: 0x%x, EOM: %d\n",
+    CompressAccelLogger.logInfo("[" + printinfo + "] dat: 0x%x, bytes: 0x%x, EOM: %d\n",
       incoming_writes_Q.io.deq.bits.data,
       incoming_writes_Q.io.deq.bits.validbytes,
       incoming_writes_Q.io.deq.bits.end_of_message
@@ -145,7 +145,9 @@ class ZstdCompressorMemWriter(val circularQueDepth: Int = 16, val writeCmpFlag: 
     remapVecData(queueno) := 0.U
     remapVecValids(queueno) := false.B
     mem_resp_queues(queueno).deq.ready := false.B
+  }
 
+  for (queueno <- 0 until NUM_QUEUES) {
     val remapindex = (queueno.U +& read_start_index) % NUM_QUEUES.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === remapindex) {
@@ -263,7 +265,7 @@ class ZstdCompressorMemWriter(val circularQueDepth: Int = 16, val writeCmpFlag: 
   when (mem_write_fire.fire) {
     read_start_index := (read_start_index +& bytes_to_write) % NUM_QUEUES.U
     backend_bytes_written := backend_bytes_written + bytes_to_write
-    CompressAccelLogger.logInfo("[memwriter-serializer] writefire: addr: 0x%x, data 0x%x, size %d\n",
+    CompressAccelLogger.logInfo("[" + printinfo + "] writefire: addr: 0x%x, data 0x%x, size %d\n",
       io.l2io.req.bits.addr,
       io.l2io.req.bits.data,
       io.l2io.req.bits.size
@@ -293,13 +295,13 @@ class ZstdCompressorMemWriter(val circularQueDepth: Int = 16, val writeCmpFlag: 
   when (bool_ptr_write_fire.fire) {
     bufs_completed := bufs_completed + 1.U
     backend_bytes_written := 0.U
-    CompressAccelLogger.logInfo("[memwriter-serializer] write cmpflag addr: 0x%x, write ptr val 0x%x\n", 
+    CompressAccelLogger.logInfo("[" + printinfo + "] write cmpflag addr: 0x%x, write ptr val 0x%x\n", 
       dest_info_Q.io.deq.bits.cmpflag, 
       dest_info_Q.io.deq.bits.cmpval)
   }
 
   when (count_valids =/= 0.U) {
-    CompressAccelLogger.logInfo("[memwriter-serializer] write_start_index %d, backend_bytes_written %d, count_valids %d, ptr_align_max_bytes_writeable %d, bytes_to_write %d, bytes_to_write_log2 %d\n",
+    CompressAccelLogger.logInfo("[" + printinfo + "] write_start_index %d, backend_bytes_written %d, count_valids %d, ptr_align_max_bytes_writeable %d, bytes_to_write %d, bytes_to_write_log2 %d\n",
       read_start_index,
       backend_bytes_written,
       count_valids,

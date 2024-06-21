@@ -151,6 +151,15 @@ class ZstdMatchFinderMemwriter(printInfo: String, writeCmpFlag: Boolean = true)(
     mem_resp_queues(queueno).enq.valid := input_fire_allqueues.fire && use_this_queue
   }
 
+  for (queueno <- 0 until NUM_QUEUES) {
+    when (mem_resp_queues(queueno).enq.fire) {
+      CompressAccelLogger.logInfo("[" + printInfo + "]" + " mrq(%d).enq.fire\n", queueno.U)
+    }
+    when (mem_resp_queues(queueno).deq.fire) {
+      CompressAccelLogger.logInfo("[" + printInfo + "]" + " mrq(%d).deq.fire\n", queueno.U)
+    }
+  }
+
   for ( queueno <- 0 until NUM_QUEUES ) {
     when (mem_resp_queues(queueno).deq.valid) {
       CompressAccelLogger.logInfo("qi%d,0x%x\n", queueno.U, mem_resp_queues(queueno).deq.bits)
@@ -171,7 +180,9 @@ class ZstdMatchFinderMemwriter(printInfo: String, writeCmpFlag: Boolean = true)(
     remapVecData(queueno) := 0.U
     remapVecValids(queueno) := false.B
     mem_resp_queues(queueno).deq.ready := false.B
+  }
 
+  for (queueno <- 0 until NUM_QUEUES) {
     val remapindex = (queueno.U +& read_start_index) % NUM_QUEUES.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === remapindex) {

@@ -148,7 +148,9 @@ class HufDecompressorMemwriter(val cmd_que_depth: Int, val write_cmp_flag:Boolea
     remapVecData(queueno) := 0.U
     remapVecValids(queueno) := false.B
     mem_resp_queues(queueno).deq.ready := false.B
+  }
 
+  for (queueno <- 0 until NUM_QUEUES) {
     val remapindex = (queueno.U +& read_start_index) % NUM_QUEUES.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === remapindex) {

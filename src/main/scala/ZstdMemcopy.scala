@@ -51,7 +51,7 @@ class ZstdMemcopy()(implicit p: Parameters) extends Module {
       io.src_info.bits.isize)
   }
 
-  val memwriter = Module(new ZstdCompressorMemWriter(writeCmpFlag=false))
+  val memwriter = Module(new ZstdCompressorMemWriter(writeCmpFlag=false, printinfo="zstdmemcpy-memwriter"))
   io.l2io_write <> memwriter.io.l2io
   memwriter.io.dest_info <> io.dst_info
 

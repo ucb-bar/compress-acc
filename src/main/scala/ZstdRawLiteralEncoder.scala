@@ -65,7 +65,7 @@ class ZstdRawLiteralEncoder()(implicit p: Parameters) extends Module {
               Mux(flSize === 2.U, set_basic + (1 << 2).U + (src_size_bytes << 4.U),
                 set_basic + (3 << 2).U + (src_size_bytes << 4.U)))
 
-  val memwriter = Module(new ZstdCompressorMemWriter(writeCmpFlag=false))
+  val memwriter = Module(new ZstdCompressorMemWriter(writeCmpFlag=false, printinfo="zstd-rawlit-memwriter"))
   io.l2io_write <> memwriter.io.l2io
   memwriter.io.dest_info <> io.dst_info
 

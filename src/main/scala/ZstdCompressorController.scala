@@ -126,7 +126,7 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
       cctx.bits.min_match_length)
   }
 
-  val fhdr_memwriter = Module(new ZstdCompressorMemWriter(circularQueDepth=2, writeCmpFlag=false))
+  val fhdr_memwriter = Module(new ZstdCompressorMemWriter(circularQueDepth=2, writeCmpFlag=false, printinfo="fhdr_memwriter"))
   io.zstd_control.l2io.fhdr_l2userif <> fhdr_memwriter.io.l2io
 
   val write_frame_header_fire = DecoupledHelper(fhdr_memwriter.io.memwrites_in.ready,
@@ -496,7 +496,7 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
   ////////////////////////////////////////////////////////////////////////////
   // 4. free corresponding buffers & write block header
   ////////////////////////////////////////////////////////////////////////////
-  val bhdr_memwriter = Module(new ZstdCompressorMemWriter(circularQueDepth=2, writeCmpFlag=true))
+  val bhdr_memwriter = Module(new ZstdCompressorMemWriter(circularQueDepth=2, writeCmpFlag=true, printinfo="bhdr_memwriter"))
   io.zstd_control.l2io.bhdr_l2userif <> bhdr_memwriter.io.l2io
 
   val sequence_execute_done = seqbytes_written_q.io.deq.valid || (seq_buf_track_q.io.deq.bits.no_sequence_block && seq_buf_track_q.io.deq.valid)

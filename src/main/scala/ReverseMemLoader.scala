@@ -165,11 +165,13 @@ class ReverseMemLoader(val printInfo: String = "")(implicit p: Parameters) exten
   val remapVecReadys = Wire(Vec(NUM_QUEUES, Bool()))
 
   for (queueno <- 0 until NUM_QUEUES) {
-    val remapindex = (NUM_QUEUES.U +& MAX_QUEUE_IDX -& queueno.U -& read_start_index) % NUM_QUEUES.U
     remapVecData(queueno) := 0.U
     remapVecValids(queueno) := false.B
     mem_resp_queues(queueno).deq.ready := false.B
+  }
 
+  for (queueno <- 0 until NUM_QUEUES) {
+    val remapindex = (NUM_QUEUES.U +& MAX_QUEUE_IDX -& queueno.U -& read_start_index) % NUM_QUEUES.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === remapindex) {
         remapVecData(queueno) := mem_resp_queues(j).deq.bits
