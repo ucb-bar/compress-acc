@@ -1808,12 +1808,13 @@ size_t accel_zstd_test_full(void *const dst, const size_t dst_len,
   ostream_t out = IO_make_ostream((u8*)dst, dst_len);
 
   const u32 magic_number = (u32)IO_read_bits(&in, 32);
+  fprintf(stdout, "ZSTD magic number got %u expect %u\n", magic_number, ZSTD_MAGIC_NUMBER);
+  fflush(stdout);
 
   if (magic_number == ZSTD_MAGIC_NUMBER) {
     return decode_data_frame(&out, &in, NULL) + 4;
   } else {
-    printf("ZSTD magic number does not match!!\n");
-    exit(2);
+    exit(9);
   }
 }
 

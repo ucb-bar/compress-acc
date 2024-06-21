@@ -58,6 +58,9 @@ function runtest() {
 # ./check.x86
 }
 
-# runtest 007662_cl1_ws15
-# runtest 000185_cl1_ws10
+runtest 007662_cl1_ws15
+runtest 000185_cl1_ws10
 runtest 009992_cl1_ws10
+runtest 009989_cl0_ws15
+runtest 009991_cl0_ws15
+

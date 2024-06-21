@@ -9,8 +9,8 @@
 #include "benchmark_data.h"
 #include "zstd_decompress.h"
 
-#define ACCEL_RESULT_AREA_BYTES_LOG 16
-#define BUFF_AREA_BYTES_LOG 16
+#define ACCEL_RESULT_AREA_BYTES_LOG 17
+#define BUFF_AREA_BYTES_LOG 17
 
 
 
