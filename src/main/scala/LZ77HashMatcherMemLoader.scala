@@ -173,7 +173,7 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     when (mem_resp_queues_pt2(queueno).deq.valid) {
-      CompressAccelLogger.logInfo("queueind %d, val %x\n", queueno.U, mem_resp_queues_pt2(queueno).deq.bits)
+      CompressAccelLogger.logInfo("lz77 mrq2 %d, val %x\n", queueno.U, mem_resp_queues_pt2(queueno).deq.bits)
     }
   }
 
@@ -191,7 +191,7 @@ class LZ77HashMatcherMemLoader()(implicit p: Parameters) extends Module
   for (queueno <- 0 until NUM_QUEUES) {
     remapVecData(queueno) := 0.U
     remapVecValids(queueno) := false.B
-    mem_resp_queues(queueno).deq.ready := false.B
+    mem_resp_queues_pt2(queueno).deq.ready := false.B
   }
 
   for (queueno <- 0 until NUM_QUEUES) {
