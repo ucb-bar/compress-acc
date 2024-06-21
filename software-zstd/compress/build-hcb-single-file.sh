@@ -64,6 +64,13 @@ function runtest() {
   ./check.x86
 }
 
+function set_baremetal_max_heap_size() {
+  echo $RISCV
+  cp $BASEDIR/../../htif.ld $RISCV/riscv64-unknown-elf/lib
+}
+
+set_baremetal_max_heap_size
+
 # runtest 000185_cl1_ws10 # 1k
 buildbench 009987_cl0_ws12 # 4k
 # runtest 007662_cl1_ws15 # 32k

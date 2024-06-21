@@ -9,5 +9,6 @@ software/zstd
 **/logs
 **/*.csv
 software-zstd/compress/benchmark_data.h
+software-zstd/compress/compressed_bytes.h
 .bsp/**
 .scala-build/**
