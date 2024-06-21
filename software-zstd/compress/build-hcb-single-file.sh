@@ -50,18 +50,20 @@ function runtest() {
 
   buildbench $1
 
-# cd $VCSDIR
-# make -j20 CONFIG=$CONFIG run-binary-debug-hex BINARY=$BASEDIR/$1.riscv
+  # Run VCS simulation
+  cd $VCSDIR
+  make -j20 CONFIG=$CONFIG run-binary-hex BINARY=$BASEDIR/$1.riscv
 
-# cd $BASEDIR
-# python $BASEDIR/../scripts/get-compressed.py --hwlog $SIMOUTPUTDIR/$1.out --algo zstd --out $BASEDIR/compressed_bytes.h
-# make all
-# ./check.x86
+  cd $BASEDIR
+  # Python script that will grab all the accelerator written bytes and output a compressed_bytes.h file
+  python get-compressed.py --hwlog $SIMOUTPUTDIR/$1.out --algo zstd --out $BASEDIR/compressed_bytes.h
+
+  # Using the above compressed_bytes.h file from the above, decompress it to check for correctness
+  # Faster than checking for correctness in the target machine
+  make all
+  ./check.x86
 }
 
 # runtest 000185_cl1_ws10 # 1k
-runtest 009987_cl0_ws12 # 4k
+buildbench 009987_cl0_ws12 # 4k
 # runtest 007662_cl1_ws15 # 32k
-# runtest 009992_cl1_ws10
-# runtest 009989_cl0_ws15
-# runtest 009991_cl0_ws15
