@@ -110,7 +110,9 @@ class MemLoader(memLoaderQueDepth: Int = 16*4)(implicit p: Parameters) extends M
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     mem_resp_queues(queueno).enq.bits := 0.U
+  }
 
+  for ( queueno <- 0 until NUM_QUEUES ) {
     val idx = (write_start_index +& queueno.U) % NUM_QUEUES.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === idx) {

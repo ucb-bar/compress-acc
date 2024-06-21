@@ -76,9 +76,11 @@ class ZstdSeqExecMemwriter32(val cmd_que_depth: Int = 4, val write_cmp_flag:Bool
   val len_to_write = incoming_writes_Q.io.deq.bits.validbytes
 
   for ( queueno <- 0 until NUM_QUEUES ) {
-    val idx = (write_start_index +& queueno.U) % NUM_QUEUES.U
     mem_resp_queues(queueno).enq.bits := 0.U
+  }
 
+  for ( queueno <- 0 until NUM_QUEUES ) {
+    val idx = (write_start_index +& queueno.U) % NUM_QUEUES.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === idx) {
         mem_resp_queues(j).enq.bits := incoming_writes_Q.io.deq.bits.data >> ((len_to_write - (queueno+1).U) << 3)

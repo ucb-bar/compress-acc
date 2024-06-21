@@ -108,8 +108,11 @@ class ReverseMemLoader(val printInfo: String = "")(implicit p: Parameters) exten
   val MAX_QUEUE_IDX = NUM_QUEUES.U - 1.U
 
   for ( queueno <- 0 until NUM_QUEUES ) {
-    val idx = (NUM_QUEUES.U +& MAX_QUEUE_IDX -& write_start_index -& queueno.U) % NUM_QUEUES.U
     mem_resp_queues(queueno).enq.bits := 0.U
+  }
+
+  for ( queueno <- 0 until NUM_QUEUES ) {
+    val idx = (NUM_QUEUES.U +& MAX_QUEUE_IDX -& write_start_index -& queueno.U) % NUM_QUEUES.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === idx) {
         mem_resp_queues(j).enq.bits := memresp_bits_shifted >> ((NUM_QUEUES-queueno-1) * 8)
@@ -150,11 +153,6 @@ class ReverseMemLoader(val printInfo: String = "")(implicit p: Parameters) exten
  
     val cur_queue_valid = resp_fire_noqueues.fire && use_this_queue && all_queues_ready
     mem_resp_queues(queueno).enq.valid := cur_queue_valid
-  }
-
-  for ( queueno <- 0 until NUM_QUEUES ) {
-    when (mem_resp_queues(queueno).enq.valid) {
-    }
   }
 
   val read_start_index = RegInit(0.U(log2Up(NUM_QUEUES+1).W))
