@@ -17,7 +17,7 @@
 #include <string.h>   // memset, memcpy
 #include "zstd_decompress.h"
 
-#define printf(fmt, ...) (0)
+/* #define printf(fmt, ...) (0) */
 
 
 /******* IMPORTANT CONSTANTS *********************************************/
