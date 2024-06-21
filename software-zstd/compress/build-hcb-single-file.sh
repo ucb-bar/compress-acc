@@ -26,7 +26,8 @@ function compile_zstd() {
 # compile_zstd
 
 function buildbench() {
-    INPUTDIR="$BASEDIR/../../software/benchmarks/HyperCompressBench/extracted_benchmarks/ZSTD-COMPRESS"
+# INPUTDIR="$BASEDIR/../../software/benchmarks/HyperCompressBench/extracted_benchmarks/ZSTD-COMPRESS"
+    INPUTDIR="$BASEDIR/example-files"
     OUTPUTDIR="$BASEDIR/../../../../sims/firesim/deploy/workloads/hyper-compress-bench-zstd"
 
     if [ ! -d $OUTPUTDIR ]
@@ -58,9 +59,9 @@ function runtest() {
 # ./check.x86
 }
 
-runtest 007662_cl1_ws15
-runtest 000185_cl1_ws10
-runtest 009992_cl1_ws10
-runtest 009989_cl0_ws15
-runtest 009991_cl0_ws15
-
+# runtest 000185_cl1_ws10 # 1k
+runtest 009987_cl0_ws12 # 4k
+# runtest 007662_cl1_ws15 # 32k
+# runtest 009992_cl1_ws10
+# runtest 009989_cl0_ws15
+# runtest 009991_cl0_ws15
