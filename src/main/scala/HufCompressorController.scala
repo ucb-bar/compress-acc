@@ -14,7 +14,7 @@ import freechips.rocketchip.tilelink._
 
 class HufCompressorControllerIO(implicit p: Parameters) extends Bundle {
   val src_info_in = Flipped(Decoupled(new StreamInfo))
-  val dst_info_in = Flipped(Decoupled(new DstInfo))
+  val dst_info_in = Flipped(Decoupled(new DstWithValInfo))
 
   val lit_src_info = Decoupled(new StreamInfo)
   val lit_dst_info = Decoupled(new DstInfo)

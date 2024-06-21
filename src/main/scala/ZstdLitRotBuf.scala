@@ -49,6 +49,7 @@ class ZstdCompressorReverseLitRotBuf(implicit val p: Parameters) extends Module 
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     val idx = (write_start_index +& queueno.U) % NUM_QUEUES.U
+    mem_resp_queues(queueno).enq.bits := DontCare
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === idx) {
         mem_resp_queues(j).enq.bits := incoming_writes_Q.io.deq.bits.data >> ((queueno.U) << 3)
@@ -170,7 +171,7 @@ class ZstdCompressorLitRotBuf(implicit val p: Parameters) extends Module {
 
   for ( queueno <- 0 until NUM_QUEUES ) {
     val idx = (write_start_index +& queueno.U) % NUM_QUEUES.U
-    mem_resp_queues(queueno) := 0.U
+    mem_resp_queues(queueno).enq.bits := 0.U
     for (j <- 0 until NUM_QUEUES) {
       when (j.U === idx) {
         mem_resp_queues(j).enq.bits := incoming_writes_Q.io.deq.bits.data >> ((queueno.U) << 3)

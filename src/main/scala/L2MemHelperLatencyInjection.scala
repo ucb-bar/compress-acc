@@ -73,6 +73,11 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
   tlb.io.req.bits.passthrough := false.B
   val tlb_ready = tlb.io.req.ready && !tlb.io.resp.miss
 
+  tlb.io.req.bits.prv := DontCare
+  tlb.io.req.bits.v := DontCare
+  tlb.io.sfence.bits.hv := DontCare
+  tlb.io.sfence.bits.hg := DontCare
+
   io.ptw <> tlb.io.ptw
   tlb.io.ptw.status := status
   tlb.io.sfence.valid := io.sfence
@@ -88,6 +93,7 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
 
   val tags_for_issue_Q = Module(new Queue(UInt(outer.tlTagBits.W), outer.numOutstandingRequestsAllowed * 2))
   tags_for_issue_Q.io.enq.valid := false.B
+  tags_for_issue_Q.io.enq.bits  := DontCare
 
   val tags_init_reg = RegInit(0.U((outer.tlTagBits+1).W))
   when (tags_init_reg =/= (outer.numOutstandingRequestsAllowed).U) {
@@ -150,6 +156,7 @@ class L2MemHelperLatencyInjectionModule(outer: L2MemHelperLatencyInjection, prin
 // req_release_cycle_q.io.enq.bits := cur_cycle + io.latency_inject_cycles
 
   request_latency_injection_q.io.latency_cycles := io.latency_inject_cycles
+  request_latency_injection_q.io.enq.bits := DontCare
 
   when (request_input.bits.cmd === M_XRD) {
     val (legal, bundle) = edge.Get(fromSource=sendtag,
