@@ -20,14 +20,14 @@ class ZstdMatchFinderRoCC(opcodes: OpcodeSet)(implicit p: Parameters) extends La
 
   // TODO: for all of these, tune the configuration params of L2MemHelper for perf and critical path
   val mem_comp_ireader = LazyModule(new L2MemHelper("[mem_comp_ireader]", numOutstandingReqs=32))
-  tlNode := mem_comp_ireader.masterNode
+  tlNode := TLWidthWidget(32) := mem_comp_ireader.masterNode
 
   // TODO: this is NOT an L2MemHelperWriteFast. see if that is a reasonable optimization later.
   val mem_seq_writer = LazyModule(new L2MemHelper(printInfo="[m_seq_writer]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
-  tlNode := mem_seq_writer.masterNode
+  tlNode := TLWidthWidget(32) := mem_seq_writer.masterNode
 
   val mem_lit_writer = LazyModule(new L2MemHelper(printInfo="[m_lit_writer]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
-  tlNode := mem_lit_writer.masterNode
+  tlNode := TLWidthWidget(32) := mem_lit_writer.masterNode
 }
 
 class ZstdMatchFinderRoCCImp(outer: ZstdMatchFinderRoCC)(implicit p: Parameters) extends LazyRoCCModuleImp(outer)

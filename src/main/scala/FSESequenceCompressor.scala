@@ -17,13 +17,13 @@ class FSESequenceCompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends 
   override lazy val module = new FSESequenceCompressorImp(this)
 
   val l2_src_reader = LazyModule(new L2MemHelper("[l2_src_reader]", numOutstandingReqs=32))
-  tlNode := l2_src_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_src_reader.masterNode
 
   val l2_src2_reader = LazyModule(new L2MemHelper("[l2_src2_reader]", numOutstandingReqs=32))
-  tlNode := l2_src2_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_src2_reader.masterNode
 
   val l2_writer = LazyModule(new L2MemHelper("[l2_writer]", numOutstandingReqs=32))
-  tlNode := l2_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_writer.masterNode
 }
 
 class FSESequenceCompressorImp(outer: FSESequenceCompressor)

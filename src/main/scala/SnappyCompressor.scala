@@ -19,20 +19,20 @@ class SnappyCompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyR
 
   if (p(CompressAccelLatencyInjectEnable)) {
     println(s"latency injection ON for [mem_comp_ireader]: adding ${p(CompressAccelLatencyInjectCycles)} cycles")
-    tlNode := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_comp_ireader.masterNode
+    tlNode := TLWidthWidget(32) := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_comp_ireader.masterNode
   } else {
     println(s"latency injection OFF for [mem_comp_ireader] due to CompressAccelLatencyInjectEnable: ${p(CompressAccelLatencyInjectEnable)}")
-    tlNode := mem_comp_ireader.masterNode
+    tlNode := TLWidthWidget(32) := mem_comp_ireader.masterNode
   }
 
   val mem_comp_writer = LazyModule(new L2MemHelper(printInfo="[m_comp_writer]", numOutstandingReqs=32, queueRequests=true, queueResponses=true, printWriteBytes=true))
 
   if (p(CompressAccelLatencyInjectEnable)) {
     println(s"latency injection ON for [mem_comp_writer]: adding ${p(CompressAccelLatencyInjectCycles)} cycles")
-    tlNode := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_comp_writer.masterNode
+    tlNode := TLWidthWidget(32) := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_comp_writer.masterNode
   } else {
     println(s"latency injection OFF for [mem_comp_writer] due to CompressAccelLatencyInjectEnable: ${p(CompressAccelLatencyInjectEnable)}")
-    tlNode := mem_comp_writer.masterNode
+    tlNode := TLWidthWidget(32) := mem_comp_writer.masterNode
   }
 }
 

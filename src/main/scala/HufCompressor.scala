@@ -17,22 +17,22 @@ class HufCompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC
   override lazy val module = new HufCompressorImp(this)
 
   val l2_lit_reader = LazyModule(new L2MemHelper("[l2_lit_reader]", numOutstandingReqs=32))
-  tlNode := l2_lit_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_lit_reader.masterNode
 
   val l2_dic_reader = LazyModule(new L2MemHelper("[l2_dic_reader]", numOutstandingReqs=32))
-  tlNode := l2_dic_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_dic_reader.masterNode
 
   val l2_dic_writer = LazyModule(new L2MemHelper("[l2_dic_writer]", numOutstandingReqs=32))
-  tlNode := l2_dic_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_dic_writer.masterNode
 
   val l2_hdr_writer = LazyModule(new L2MemHelper("[l2_hdr_writer]", numOutstandingReqs=2))
-  tlNode := l2_hdr_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_hdr_writer.masterNode
 
   val l2_jt_writer = LazyModule(new L2MemHelper("[l2_jt_writer]", numOutstandingReqs=2))
-  tlNode := l2_jt_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_jt_writer.masterNode
 
   val l2_lit_writer = LazyModule(new L2MemHelper("[l2_lit_writer]", numOutstandingReqs=32))
-  tlNode := l2_lit_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_lit_writer.masterNode
 }
 
 class HufCompressorImp(outer: HufCompressor)(implicit p: Parameters) 

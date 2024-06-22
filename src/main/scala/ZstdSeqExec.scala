@@ -24,13 +24,13 @@ class ZstdSeqExec(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(o
   override lazy val module = new ZstdSeqExecImp(this)
 
   val mem_decomp_ireader = LazyModule(new L2MemHelper("[mem_decomp_ireader]", numOutstandingReqs=32))
-  tlNode := mem_decomp_ireader.masterNode
+  tlNode := TLWidthWidget(32) := mem_decomp_ireader.masterNode
 
   val mem_decomp_writer = LazyModule(new L2MemHelper(printInfo="[m_decomp_writer]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
-  tlNode := mem_decomp_writer.masterNode
+  tlNode := TLWidthWidget(32) := mem_decomp_writer.masterNode
 
   val mem_decomp_readbackref = LazyModule(new L2MemHelper("[m_decomp_readbackref]", numOutstandingReqs=32))
-  tlNode := mem_decomp_readbackref.masterNode 
+  tlNode := TLWidthWidget(32) := mem_decomp_readbackref.masterNode 
 }
 
 class ZstdSeqExecImp(outer: ZstdSeqExec)(implicit p: Parameters) extends LazyRoCCModuleImp(outer) with MemoryOpConstants {

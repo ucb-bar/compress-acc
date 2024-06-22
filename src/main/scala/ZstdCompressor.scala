@@ -37,59 +37,59 @@ class ZstdCompressor(opcodes: OpcodeSet)(implicit p: Parameters)
 
   val l2_fhdr_writer = LazyModule(new L2MemHelperLatencyInjection("[fhdr_writer]",
                                                   numOutstandingReqs=4, printWriteBytes=true))
-  tlNode := l2_fhdr_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_fhdr_writer.masterNode
 
   val l2_bhdr_writer = LazyModule(new L2MemHelperLatencyInjection("[bhdr_writer]",
                                                   numOutstandingReqs=4, printWriteBytes=true))
-  tlNode := l2_bhdr_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_bhdr_writer.masterNode
 
   val l2_mf_reader = LazyModule(new L2MemHelperLatencyInjection("[mf_reader]", numOutstandingReqs=32))
-  tlNode := l2_mf_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_mf_reader.masterNode
 
   val l2_mf_seqwriter = LazyModule(new L2MemHelperLatencyInjection(printInfo="[mf_seqwriter]", numOutstandingReqs=32, queueRequests=true, queueResponses=true, printWriteBytes=true))
-  tlNode := l2_mf_seqwriter.masterNode
+  tlNode := TLWidthWidget(32) := l2_mf_seqwriter.masterNode
 
   val l2_mf_litwriter = LazyModule(new L2MemHelperLatencyInjection(printInfo="[mf_litwriter]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
-  tlNode := l2_mf_litwriter.masterNode
+  tlNode := TLWidthWidget(32) := l2_mf_litwriter.masterNode
 
   val l2_huf_lit_reader = LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_lit_reader]", numOutstandingReqs=32))
-  tlNode := l2_huf_lit_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_huf_lit_reader.masterNode
 
   val l2_huf_dic_reader = LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_dic_reader]", numOutstandingReqs=32))
-  tlNode := l2_huf_dic_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_huf_dic_reader.masterNode
 
   val l2_huf_dic_writer = LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_dic_writer]", numOutstandingReqs=32, printWriteBytes=true))
-  tlNode := l2_huf_dic_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_huf_dic_writer.masterNode
 
   val l2_huf_hdr_writer = LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_hdr_writer]", numOutstandingReqs=4, printWriteBytes=true))
-  tlNode := l2_huf_hdr_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_huf_hdr_writer.masterNode
 
   val l2_huf_jt_writer = LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_jt_writer]", numOutstandingReqs=4, printWriteBytes=true))
-  tlNode := l2_huf_jt_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_huf_jt_writer.masterNode
 
   val l2_huf_lit_writer = LazyModule(new L2MemHelperLatencyInjection(printInfo="[huf_lit_writer]", numOutstandingReqs=32, printWriteBytes=true))
-  tlNode := l2_huf_lit_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_huf_lit_writer.masterNode
 
   val l2_seq_reader = LazyModule(new L2MemHelperLatencyInjection(printInfo="[seq_reader]", numOutstandingReqs=32))
-  tlNode := l2_seq_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_seq_reader.masterNode
 
   val l2_seq_reader2 = LazyModule(new L2MemHelperLatencyInjection(printInfo="[seq_reader2]", numOutstandingReqs=32))
-  tlNode := l2_seq_reader2.masterNode
+  tlNode := TLWidthWidget(32) := l2_seq_reader2.masterNode
 
   val l2_seq_writer = LazyModule(new L2MemHelperLatencyInjection(printInfo="[seq_writer]", numOutstandingReqs=32, printWriteBytes=true))
-  tlNode := l2_seq_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_seq_writer.masterNode
 
   val l2_raw_block_reader = LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_block_reader]", numOutstandingReqs=32))
-  tlNode := l2_raw_block_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_raw_block_reader.masterNode
 
   val l2_raw_block_writer = LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_block_writer]", numOutstandingReqs=32, printWriteBytes=true))
-  tlNode := l2_raw_block_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_raw_block_writer.masterNode
 
   val l2_raw_lit_reader = LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_lit_reader]", numOutstandingReqs=32))
-  tlNode := l2_raw_lit_reader.masterNode
+  tlNode := TLWidthWidget(32) := l2_raw_lit_reader.masterNode
 
   val l2_raw_lit_writer = LazyModule(new L2MemHelperLatencyInjection(printInfo="[raw_lit_writer]", numOutstandingReqs=32, printWriteBytes=true))
-  tlNode := l2_raw_lit_writer.masterNode
+  tlNode := TLWidthWidget(32) := l2_raw_lit_writer.masterNode
 }
 
 class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters) 

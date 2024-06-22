@@ -18,33 +18,33 @@ class SnappyDecompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends Laz
   val mem_decomp_ireader = LazyModule(new L2MemHelper("[mem_decomp_ireader]", numOutstandingReqs=32))
   if (p(CompressAccelLatencyInjectEnable)) {
     println(s"latency injection ON for [mem_decomp_ireader]: adding ${p(CompressAccelLatencyInjectCycles)} cycles")
-    tlNode := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_decomp_ireader.masterNode
+    tlNode := TLWidthWidget(32) := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_decomp_ireader.masterNode
   } else {
     println(s"latency injection OFF for [mem_decomp_ireader] due to CompressAccelLatencyInjectEnable: ${p(CompressAccelLatencyInjectEnable)}")
-    tlNode := mem_decomp_ireader.masterNode
+    tlNode := TLWidthWidget(32) := mem_decomp_ireader.masterNode
   }
 
   val mem_decomp_writer = LazyModule(new L2MemHelper(printInfo="[m_decomp_writer]", numOutstandingReqs=32, queueRequests=true, queueResponses=true))
   if (p(CompressAccelLatencyInjectEnable)) {
     println(s"latency injection ON for [mem_decomp_writer]: adding ${p(CompressAccelLatencyInjectCycles)} cycles")
-    tlNode := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_decomp_writer.masterNode
+    tlNode := TLWidthWidget(32) := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_decomp_writer.masterNode
   } else {
     println(s"latency injection OFF for [mem_decomp_writer] due to CompressAccelLatencyInjectEnable: ${p(CompressAccelLatencyInjectEnable)}")
-    tlNode := mem_decomp_writer.masterNode
+    tlNode := TLWidthWidget(32) := mem_decomp_writer.masterNode
   }
 
   val mem_decomp_readbackref = LazyModule(new L2MemHelper("[m_decomp_readbackref]", numOutstandingReqs=32))
   if (p(CompressAccelLatencyInjectEnable)) {
     if (p(CompressAccelFarAccelLocalCache)) {
       println(s"latency injection OFF for [mem_decomp_readbackref] due to CompressAccelFarAccelLocalCache: ${p(CompressAccelFarAccelLocalCache)}")
-      tlNode := mem_decomp_readbackref.masterNode
+      tlNode := TLWidthWidget(32) := mem_decomp_readbackref.masterNode
     } else {
       println(s"latency injection ON for [mem_decomp_readbackref]: adding ${p(CompressAccelLatencyInjectCycles)} cycles")
-      tlNode := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_decomp_readbackref.masterNode
+      tlNode := TLWidthWidget(32) := TLBuffer.chainNode(p(CompressAccelLatencyInjectCycles)) := mem_decomp_readbackref.masterNode
     }
   } else {
     println(s"latency injection OFF for [mem_decomp_readbackref] due to CompressAccelLatencyInjectEnable: ${p(CompressAccelLatencyInjectEnable)}")
-    tlNode := mem_decomp_readbackref.masterNode
+    tlNode := TLWidthWidget(32) := mem_decomp_readbackref.masterNode
   }
 }
 

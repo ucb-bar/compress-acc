@@ -17,13 +17,13 @@ class FSECompressor(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC
     override lazy val module = new FSECompressorImp(this)
 
     val l2_src_reader = LazyModule(new L2MemHelper("[l2_src_reader]", numOutstandingReqs=32))
-    tlNode := l2_src_reader.masterNode
+    tlNode := TLWidthWidget(32) := l2_src_reader.masterNode
 
     val l2_src_reader2 = LazyModule(new L2MemHelper("[l2_src_reader2]", numOutstandingReqs=32))
-    tlNode := l2_src_reader2.masterNode
+    tlNode := TLWidthWidget(32) := l2_src_reader2.masterNode
 
     val l2_dst_writer = LazyModule(new L2MemHelper("[l2_dst_writer]", numOutstandingReqs=32))
-    tlNode := l2_dst_writer.masterNode
+    tlNode := TLWidthWidget(32) := l2_dst_writer.masterNode
 }
 
 class FSECompressorImp(outer: FSECompressor)(implicit p: Parameters)
