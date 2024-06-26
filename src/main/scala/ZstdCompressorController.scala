@@ -8,6 +8,7 @@ import org.chipsalliance.cde.config._
 import freechips.rocketchip.util.DecoupledHelper
 import ZstdConsts._
 import CompressorConsts._
+import genevent._
 
 class ZstdMatchFinderBufTrackInfo extends Bundle {
   val lit_addr = UInt(64.W)
@@ -151,6 +152,9 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
 
   fhdr_builder.io.print_info := write_frame_header_fire.fire
 
+  val frameHeaderWriteEvent = Wire(new EventTag)
+  frameHeaderWriteEvent := DontCare
+
   when (write_frame_header_fire.fire) {
     frameControllerState := sCompressBlocks
     track_buf_cnt := track_buf_cnt + 1.U
@@ -158,6 +162,8 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
 
     CompressAccelLogger.logInfo("FRAMECONTROL_BUILD_FHDR : sWriteFrameHeader -> sCompressBlocks\n")
     CompressAccelLogger.logInfo("srcFileSize: 0x%x, clevel: %d\n", io.src_info.bits.isize, io.clevel_info.bits)
+
+    frameHeaderWriteEvent := GenEvent("FHDR_WRITE", fhdr_memwriter.io.memwrites_in.bits.validbytes, None)
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -274,6 +280,9 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
     lit_buff_free_vec(lit_buff_idx) := false.B
   }
 
+  val matchfinderEventTag = Wire(new EventTag)
+  matchfinderEventTag := DontCare
+
   when (mf_kickoff.fire) {
     CompressAccelLogger.logInfo("FRAMECONTROL_MF_FIRE\n")
     CompressAccelLogger.logInfo("sent_block_count: %d\n", sent_block_count)
@@ -297,6 +306,8 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
     CompressAccelLogger.logInfo("lit_buff_chunk_cnt: %d\n", lit_buff_chunk_cnt)
     CompressAccelLogger.logInfo("lit_buff_offset: %d, 0x%x\n", lit_buff_offset, lit_buff_offset)
     CompressAccelLogger.logInfo("lit_buff_start_addr: 0x%x\n", lit_buff_start_addr)
+
+    matchfinderEventTag := GenEvent("LZ77Fire", 0.U, Some(frameHeaderWriteEvent))
   }
 
 
@@ -399,6 +410,9 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
   mf_buf_track_q.io.deq.ready := lit_kickoff.fire(mf_buf_track_q.io.deq.valid)
   mf_dst_addr_q.io.deq.ready := lit_kickoff.fire(mf_dst_addr_q.io.deq.valid)
 
+  val huffmanEventTag = Wire(new EventTag)
+  huffmanEventTag := DontCare
+
   when (lit_kickoff.fire) {
     CompressAccelLogger.logInfo("FRAMECONTROL_LIT_FIRE\n")
     CompressAccelLogger.logInfo("litcpy_src_q.io.enq.bits.ip: 0x%x\n", litcpy_src_q.io.enq.bits.ip)
@@ -413,6 +427,8 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
     CompressAccelLogger.logInfo("last_block: %d\n", mf_buf_track_q.io.deq.bits.last_block)
     CompressAccelLogger.logInfo("raw_block: %d\n", raw_block)
     CompressAccelLogger.logInfo("raw_lit: %d\n", raw_lit)
+
+    huffmanEventTag := GenEvent("HuffmanFire", 0.U, Some(matchfinderEventTag))
   }
 
   val litbytes_written_q = Module(new Queue(UInt(64.W), queDepth))
@@ -475,6 +491,9 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
   raw_litbytes_written_q.io.deq.ready := seq_kickoff.fire(litbytes_deq_valid, raw_literal_block)
   lit_buf_track_q.io.deq.ready := seq_kickoff.fire(lit_buf_track_q.io.deq.valid)
 
+  val fseEventTag = Wire(new EventTag)
+  fseEventTag := DontCare
+
   when (seq_kickoff.fire) {
     CompressAccelLogger.logInfo("FRAMECONTROL_SEQ_FIRE\n")
     CompressAccelLogger.logInfo("seqcpy_src_q.io.enq.bits.ip: 0x%x\n", seqcpy_src_q.io.enq.bits.ip)
@@ -488,6 +507,8 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
     CompressAccelLogger.logInfo("last_block: %d\n", lit_buf_track_q.io.deq.bits.last_block)
     CompressAccelLogger.logInfo("seqcpy_src_q.io.enq.fire: %d\n", seqcpy_src_q.io.enq.fire)
     CompressAccelLogger.logInfo("seqcpy_dst_q.io.enq.fire: %d\n", seqcpy_dst_q.io.enq.fire)
+
+    fseEventTag := GenEvent("FSEFire", 0.U, Some(huffmanEventTag))
   }
 
   val seqbytes_written_q = Module(new Queue(UInt(64.W), queDepth))

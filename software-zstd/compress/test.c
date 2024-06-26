@@ -14,7 +14,7 @@
 
 
 
-#define FIRESIM
+/* #define FIRESIM */
 
 int main() {
     size_t litBuffSize = 1 << BUFF_AREA_BYTES_LOG;
@@ -55,7 +55,6 @@ int main() {
       benchmark_raw_data_len * 2,
       result_area,
       benchmark_raw_data_len * 2);
-
 
   uint64_t* benchmark_raw_data_by8 = (uint64_t*)benchmark_raw_data;
   uint64_t* result_area_by8 = (uint64_t *)result_area_decomp;
