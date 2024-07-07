@@ -11,6 +11,7 @@ import freechips.rocketchip.rocket.{TLBConfig, HellaCacheArbiter}
 import freechips.rocketchip.util.DecoupledHelper
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
 import freechips.rocketchip.tilelink._
+import genevent._
 
 
 class ZstdRawBlockMemcopyL2IO()(implicit p: Parameters) extends Bundle {
@@ -57,6 +58,10 @@ class ZstdLiteralEncoderIO()(implicit p: Parameters) extends Bundle {
   val l2if = new ZstdLiteralEncoderL2IO
 
   val busy = Output(Bool())
+
+  val event_anno = p(AnnotateEvents)
+  val i_event = if (event_anno) Some(Input (new EventTag)) else None
+  val o_event = if (event_anno) Some(Output(new EventTag)) else None
 }
 
 class ZstdLiteralEncoder()(implicit p: Parameters) extends ZstdCompressorModule {
@@ -108,6 +113,11 @@ class ZstdLiteralEncoder()(implicit p: Parameters) extends ZstdCompressorModule 
   controller.io.weight_bytes <> dic_builder.io.header_written_bytes
   controller.io.header_size_info <> dic_builder.io.header_size_info
   dic_builder.io.init_dictionary <> controller.io.init_dictionary
+
+  if (p(AnnotateEvents)) {
+    dic_builder.io.i_event.get := io.i_event.get
+    io.o_event.get := dic_builder.io.o_event.get
+  }
 
   val dic_writer = Module(new EntropyCompressorMemwriter(writeCmpFlag=false, "lit-dic-memwr"))
   io.l2if.dic_writer <> dic_writer.io.l2io

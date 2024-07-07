@@ -11,6 +11,7 @@ import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
 import ZstdConsts._
+import genevent._
 
 
 class FSECompTransformationTable extends Bundle {
@@ -33,6 +34,10 @@ class FSECompressorDicBuilderIO(val interleave_cnt: Int)(implicit p: Parameters)
   val predefined_mode = Decoupled(Bool())
 
   val lookup_done = Flipped(Decoupled(Bool()))
+
+  val event_anno = p(AnnotateEvents)
+  val i_event = if (event_anno) Some(Input (new EventTag)) else None
+  val o_event = if (event_anno) Some(Output(new EventTag)) else None
 }
 
 // NOTE : about 4 * 2^tableLog Bytes of on-chip regs
@@ -548,6 +553,20 @@ class FSECompressorDicBuilder(
     writeBitStreamPrev0 := false.B
   }
 
+  val event_anno = p(AnnotateEvents)
+
+  val buildDictDoneEventTag = Wire(new EventTag)
+  val writeDictEventTag = Wire(new EventTag)
+  val lookupDoneEventTag = Wire(new EventTag)
+
+  buildDictDoneEventTag := DontCare
+  writeDictEventTag := DontCare
+  lookupDoneEventTag := DontCare
+
+  if (event_anno) {
+    io.o_event.get := lookupDoneEventTag
+  }
+
   switch (dicBuilderState) {
     is (sIdle) {
       when (io.ll_stream.output_valid && io.nb_seq.valid) {
@@ -784,6 +803,9 @@ class FSECompressorDicBuilder(
       when (ll_s === ll_max_symbol_value) {
         ll_s := 0.U
         dicBuilderState := sWriteCTable
+        if (event_anno) {
+          buildDictDoneEventTag := GenEvent("FSEDictBuildDone", 0.U, io.i_event)
+        }
       }
     }
 
@@ -923,6 +945,9 @@ class FSECompressorDicBuilder(
             dicBuilderState := sLookup
             bitStream := 0.U
             bitCount := 0.U
+            if (event_anno) {
+              writeDictEventTag := GenEvent("FSEDictWriteDone", 0.U, Some(buildDictDoneEventTag))
+            }
           }
         }
       }
@@ -967,6 +992,9 @@ class FSECompressorDicBuilder(
       when (io.lookup_done.valid) {
         io.nb_seq.ready := true.B
         dicBuilderState := sIdle
+        if (event_anno) {
+          lookupDoneEventTag := GenEvent("FSELookupDone", 0.U, Some(writeDictEventTag))
+        }
       }
     }
   }

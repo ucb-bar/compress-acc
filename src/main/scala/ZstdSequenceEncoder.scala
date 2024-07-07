@@ -11,6 +11,7 @@ import freechips.rocketchip.rocket.{TLBConfig, HellaCacheArbiter}
 import freechips.rocketchip.util.DecoupledHelper
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
 import freechips.rocketchip.tilelink._
+import genevent._
 
 
 class ZstdSequenceEncoderL2IO()(implicit p: Parameters) extends Bundle {
@@ -27,6 +28,10 @@ class ZstdSequenceEncoderIO()(implicit p: Parameters) extends Bundle {
   val l2if = new ZstdSequenceEncoderL2IO
 
   val busy = Output(Bool())
+
+  val event_anno = p(AnnotateEvents)
+  val i_event = if (event_anno) Some(Input (new EventTag)) else None
+  val o_event = if (event_anno) Some(Output(new EventTag)) else None
 }
 
 
@@ -111,6 +116,14 @@ class ZstdSequenceEncoder()(implicit p: Parameters) extends Module {
                                                           mark_end_of_header=true))
   ml_dic_builder.io.nb_seq <> nbseq_q2.io.deq
   ml_dic_builder.io.ll_stream <> seq_to_code_converter.io.ml_consumer
+
+  if (p(AnnotateEvents)) {
+    ml_dic_builder.io.i_event.get := io.i_event.get
+    io.o_event.get := ml_dic_builder.io.o_event.get
+
+    ll_dic_builder.io.i_event.get := DontCare
+    of_dic_builder.io.i_event.get := DontCare
+  }
 
   val src_memloader2 = Module(new ReverseMemLoader("seq-revmemloader"))
   io.l2if.seq_reader2 <> src_memloader2.io.l2helperUser

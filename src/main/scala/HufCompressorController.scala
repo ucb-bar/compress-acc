@@ -148,8 +148,6 @@ class HufCompressorController(val cmd_que_depth: Int)(implicit p: Parameters) ex
     io.dst_info_in.valid,
     lit_src_info_q.io.enq.ready,
     lit_dst_info_q.io.enq.ready,
-// io.lit_dst_info.ready,
-// io.lit_src_info.ready,
     kickoff_encoder,
     hufCompressState === sKickoffEncoder)
 
@@ -165,15 +163,6 @@ class HufCompressorController(val cmd_que_depth: Int)(implicit p: Parameters) ex
   lit_src_info_q.io.enq.bits.isize := Mux(!singleStream, Mux(completed_streams === 3.U, last_segment_size, segment_size),
                                     srcSize)
   lit_src_info_q.io.enq.valid := kickoff_encoder_fire.fire(lit_src_info_q.io.enq.ready, completed_streams < num_streams)
-
-// io.lit_dst_info.bits.op := io.dst_info_in.bits.op + h_w_j_bytes + clitSize
-// io.lit_dst_info.bits.cmpflag := 0.U
-// io.lit_dst_info.valid := kickoff_encoder_fire.fire(io.lit_dst_info.ready, completed_streams < num_streams)
-
-// io.lit_src_info.bits.ip := io.src_info_in.bits.ip + completed_streams * segment_size
-// io.lit_src_info.bits.isize := Mux(!singleStream, Mux(completed_streams === 3.U, last_segment_size, segment_size),
-// srcSize)
-// io.lit_src_info.valid := kickoff_encoder_fire.fire(io.lit_src_info.ready, completed_streams < num_streams)
 
   when (kickoff_encoder_fire.fire && first_stream) {
     first_stream := false.B

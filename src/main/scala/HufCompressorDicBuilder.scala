@@ -9,6 +9,7 @@ import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.util.DecoupledHelper
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
+import genevent._
 
 class HufCompressorDicBuilderIO(val unroll_cnt: Int)(implicit val p: Parameters) extends Bundle {
   val cnt_stream = Flipped(new MemLoaderConsumerBundle)
@@ -21,6 +22,10 @@ class HufCompressorDicBuilderIO(val unroll_cnt: Int)(implicit val p: Parameters)
   val header_size_info = Decoupled(UInt(8.W))
 
   val init_dictionary = Flipped(Decoupled(Bool()))
+
+  val event_anno = p(AnnotateEvents)
+  val i_event = if (event_anno) Some(Input (new EventTag)) else None
+  val o_event = if (event_anno) Some(Output(new EventTag)) else None
 }
 
 class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
@@ -577,6 +582,24 @@ class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
   /////////////////////////////////////////////////////////////////////////////
   // state machine transitions
   /////////////////////////////////////////////////////////////////////////////
+  val event_anno = p(AnnotateEvents)
+
+
+  val collectAndProcessStatsEventTag = Wire(new EventTag)
+  val buildDictEventTag = Wire(new EventTag)
+  val writeDictEventTag = Wire(new EventTag)
+  val lookupDoneEventTag = Wire(new EventTag)
+
+  collectAndProcessStatsEventTag := DontCare
+  buildDictEventTag := DontCare
+  writeDictEventTag := DontCare
+  lookupDoneEventTag := DontCare
+
+  if (event_anno) {
+    assert(io.o_event.isDefined)
+    io.o_event.get := lookupDoneEventTag
+  }
+
   switch (state) {
     is (STATE_COLLECT_STATS) {
       when (io.cnt_stream.output_valid && io.cnt_stream.output_last_chunk && (consumed_bytes === avail_bytes)) {
@@ -587,6 +610,9 @@ class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
     is (STATE_PROCESS_STATS) {
       when (processed_idx === HUF_MAX_SYMBOLS1.U - 1.U) {
         state := STATE_NORM_CNT
+        if (event_anno) {
+          collectAndProcessStatsEventTag := GenEvent("HuffCollectAndProcessStatsDone", 0.U, io.i_event)
+        }
       }
     }
 
@@ -631,18 +657,27 @@ class HufCompressorDicBuilder(val cmd_que_depth: Int, val unroll_cnt: Int)
     is (STATE_DIC_SET_VALUE) {
       when (tmp_idx === max_symbol_value) {
         state := STATE_WRITE_DIC
+        if (event_anno) {
+          buildDictEventTag := GenEvent("HuffDictBuildDone", 0.U, Some(collectAndProcessStatsEventTag))
+        }
       }
     }
 
     is (STATE_WRITE_DIC) {
       when (io.header_written_bytes.fire) {
         state := STATE_LOOKUP
+        if (event_anno) {
+          writeDictEventTag := GenEvent("HuffDictWriteDone", 0.U, Some(buildDictEventTag))
+        }
       }
     }
 
     is (STATE_LOOKUP) {
       when (io.init_dictionary.valid) {
         state := STATE_COLLECT_STATS
+        if (event_anno) {
+          lookupDoneEventTag := GenEvent("HuffCompDone", 0.U, Some(writeDictEventTag))
+        }
       }
     }
 

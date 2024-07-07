@@ -108,6 +108,7 @@ class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters)
   ////////////////////////////////////////////////////////////////////////////
 
   val removeSnappy = p(RemoveSnappyFromMergedAccelerator)
+  val event_anno = p(AnnotateEvents)
 
   val cmd_router = Module(new ZstdCompressorCommandRouter)
   cmd_router.io.rocc_in <> io.cmd
@@ -148,6 +149,11 @@ class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters)
   lit_compressor.io.src_info2 <> controller.io.zstd_control.litcpy_src2
   lit_compressor.io.dst_info <> controller.io.zstd_control.litcpy_dst
   controller.io.zstd_control.litbytes_written <> lit_compressor.io.bytes_written
+
+  if (event_anno) {
+    lit_compressor.io.i_event.get := controller.io.zstd_control.lit_o_event.get
+    controller.io.zstd_control.lit_i_event.get := lit_compressor.io.o_event.get
+  }
 // ??? := lit_compressor.io.busy
 
 
@@ -172,6 +178,11 @@ class ZstdCompressorImp(outer: ZstdCompressor)(implicit p: Parameters)
   seq_compressor.io.src_info <> controller.io.zstd_control.seqcpy_src
   seq_compressor.io.dst_info <> controller.io.zstd_control.seqcpy_dst
   controller.io.zstd_control.seqbytes_written <> seq_compressor.io.bytes_written
+
+  if (event_anno) {
+    seq_compressor.io.i_event.get := controller.io.zstd_control.seq_o_event.get
+    controller.io.zstd_control.seq_i_event.get := seq_compressor.io.o_event.get
+  }
 
 
   ////////////////////////////////////////////////////////////////////////////

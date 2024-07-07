@@ -8,6 +8,7 @@ import org.chipsalliance.cde.config._
 import freechips.rocketchip.util.DecoupledHelper
 import ZstdConsts._
 import CompressorConsts._
+import genevent._
 
 
 class SnappyCompressorControllerIO extends Bundle {
@@ -116,6 +117,14 @@ class CompressorController(implicit p: Parameters) extends Module {
   zstd_controller.io.dst_info.bits := io.dst_info.bits
   zstd_controller.io.buff_info <> io.buff_info
   zstd_controller.io.clevel_info <> io.clevel_info
+
+  if (p(AnnotateEvents)) {
+    io.zstd_control.lit_o_event.get := zstd_controller.io.zstd_control.lit_o_event.get
+    zstd_controller.io.zstd_control.lit_i_event.get := io.zstd_control.lit_i_event.get
+
+    io.zstd_control.seq_o_event.get := zstd_controller.io.zstd_control.seq_o_event.get
+    zstd_controller.io.zstd_control.seq_i_event.get := io.zstd_control.seq_i_event.get
+  }
 
   val zstd_src_valid = DecoupledHelper(
     zstd_controller.io.src_info.ready,

@@ -45,7 +45,7 @@ class ZstdCompressorFrameControllerL2IO extends Bundle {
   val bhdr_l2userif = new L2MemHelperBundle
 }
 
-class ZstdControlIO extends Bundle {
+class ZstdControlIO(implicit p: Parameters) extends Bundle {
   val l2io = new ZstdCompressorFrameControllerL2IO
 
   val litcpy_src = Decoupled(new StreamInfo)
@@ -64,6 +64,13 @@ class ZstdControlIO extends Bundle {
   val seqcpy_src = Decoupled(new StreamInfo)
   val seqcpy_dst = Decoupled(new DstWithValInfo)
   val seqbytes_written = Flipped(Decoupled(UInt(64.W)))
+
+  val event_anno = p(AnnotateEvents)
+  val lit_i_event = if (event_anno) Some(Input (new EventTag)) else None
+  val lit_o_event = if (event_anno) Some(Output(new EventTag)) else None
+
+  val seq_i_event = if (event_anno) Some(Input (new EventTag)) else None
+  val seq_o_event = if (event_anno) Some(Output(new EventTag)) else None
 }
 
 class SharedControlIO extends Bundle {
@@ -75,7 +82,7 @@ class SharedControlIO extends Bundle {
 }
 
 
-class ZstdCompressorFrameControllerIO extends Bundle {
+class ZstdCompressorFrameControllerIO(implicit p: Parameters) extends Bundle {
   val src_info  = Flipped(Decoupled(new StreamInfo))
   val dst_info  = Flipped(Decoupled(new DstInfo))
   val buff_info = Flipped(new ZstdBuffInfo)
@@ -413,6 +420,10 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
   val huffmanEventTag = Wire(new EventTag)
   huffmanEventTag := DontCare
 
+  if (p(AnnotateEvents)) {
+    io.zstd_control.lit_o_event.get := huffmanEventTag
+  }
+
   when (lit_kickoff.fire) {
     CompressAccelLogger.logInfo("FRAMECONTROL_LIT_FIRE\n")
     CompressAccelLogger.logInfo("litcpy_src_q.io.enq.bits.ip: 0x%x\n", litcpy_src_q.io.enq.bits.ip)
@@ -493,6 +504,9 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
 
   val fseEventTag = Wire(new EventTag)
   fseEventTag := DontCare
+  if (p(AnnotateEvents)) {
+    io.zstd_control.seq_o_event.get := fseEventTag
+  }
 
   when (seq_kickoff.fire) {
     CompressAccelLogger.logInfo("FRAMECONTROL_SEQ_FIRE\n")
@@ -508,7 +522,7 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
     CompressAccelLogger.logInfo("seqcpy_src_q.io.enq.fire: %d\n", seqcpy_src_q.io.enq.fire)
     CompressAccelLogger.logInfo("seqcpy_dst_q.io.enq.fire: %d\n", seqcpy_dst_q.io.enq.fire)
 
-    fseEventTag := GenEvent("FSEFire", 0.U, Some(huffmanEventTag))
+    fseEventTag := GenEvent("FSEFire", 0.U, io.zstd_control.lit_i_event)
   }
 
   val seqbytes_written_q = Module(new Queue(UInt(64.W), queDepth))
@@ -593,6 +607,9 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
   io.buff_info.seq.ready := block_hdr_write.fire(io.buff_info.seq.valid, last_block_header)
   io.clevel_info.ready := block_hdr_write.fire(io.clevel_info.valid, last_block_header)
 
+  val blkhdrEventTag = Wire(new EventTag)
+  blkhdrEventTag := DontCare
+
   when (block_hdr_write.fire) {
     total_compressed_bytes := nxt_total_compressed_bytes
 
@@ -607,6 +624,7 @@ class ZstdCompressorFrameController(implicit p: Parameters) extends ZstdCompress
       lit_buff_idx := 0.U
       total_compressed_bytes := 0.U
     }
+    blkhdrEventTag := GenEvent("BlkHdrWrite", 0.U, io.zstd_control.seq_i_event)
   }
 
   when (block_hdr_write.fire) {

@@ -39,6 +39,8 @@ case object CompressAccelLatencyInjectCycles extends Field[Integer](400)
 case object CompressAccelFarAccelLocalCache extends Field[Boolean](false)
 
 
+case object AnnotateEvents extends Field[Boolean](false)
+
 
 //////////////////////////////////////////////////////////////////////////////
 // ZSTD stuff
@@ -379,3 +381,7 @@ class WithCompressAccelPrintf extends Config((site, here, up) => {
   case CompressAccelPrintfEnable => true
 })
 
+
+class WithCompressAccelEventAnnos extends Config((site, here, up) => {
+  case AnnotateEvents => true
+})

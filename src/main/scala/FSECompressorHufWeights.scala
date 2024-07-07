@@ -145,6 +145,10 @@ class FSECompressorCompHufWeights(implicit val p: Parameters) extends Module {
   }
 
   io.memwrites_out <> encoder.io.memwrites_out
+
+  if (p(AnnotateEvents)) {
+    dic_builder.io.i_event.get := DontCare
+  }
 }
 
 class FSECompressorRawHufWeights(implicit val p: Parameters) extends Module {
