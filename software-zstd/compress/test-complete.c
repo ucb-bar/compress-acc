@@ -72,8 +72,8 @@ bool run_benchmark(char * benchmark_compressed_data, size_t benchmark_compressed
 
   uint64_t t2 = rdcycle();
 
-  //printf("Start cycle: %" PRIu64 "\n", t1);
-  //printf("End cycle: %" PRIu64 "\n", t2);
+  printf("Start cycle: %" PRIu64 "\n", t1);
+  printf("End cycle: %" PRIu64 "\n", t2);
 
 #ifdef DO_PRINT
   printf("Took %" PRIu64 " cycles produced %" PRIu64 " compressed bytes uncompsize %" PRIu64 " for benchmark %s with histsram %" PRIu64 " with log2HTEntries: %" PRIu64 " with latencyInjection: %" PRIu64 " hasCache: %d\n", 
