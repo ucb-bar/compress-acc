@@ -223,7 +223,7 @@ int main() {
   printf("Setting up...\n");
 #endif
 
-  unsigned char * result_area = ZstdCompressAccelSetup(total_benchmarks_uncompressed_size, hist_sizes[0]);
+  unsigned char * result_area = ZstdCompressAccelSetup(total_benchmarks_uncompressed_size);
   unsigned char * lit_buf = ZstdCompressWorkspaceSetup(total_benchmarks_uncompressed_size);
   unsigned char * seq_buf = ZstdCompressWorkspaceSetup(total_benchmarks_uncompressed_size);
   unsigned char * result_area_decomp = ZstdCompressWorkspaceSetup(total_benchmarks_uncompressed_size);
