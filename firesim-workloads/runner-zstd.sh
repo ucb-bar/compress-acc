@@ -1,6 +1,6 @@
 
 M1_BASE_DIR=$PWD
-LZBENCH_DIR=$M1_BASE_DIR/lzbench
+LZBENCH_DIR=$M1_BASE_DIR/../../../software/zstd/
 
 git clone https://github.com/inikep/lzbench.git
 cd lzbench
@@ -36,9 +36,23 @@ function run_lzbench() {
         BASE_FILENAME=$(basename $ENTRY)
         CLEVEL=$(parse_filename $BASE_FILENAME)
         echo "${BASE_FILENAME} | ${CLEVEL}"
-        $LZBENCH_DIR/lzbench -ezstd,$CLEVEL -t1,1 -o4 $ENTRY >> $LZBENCH_RESULTS
+        CLEVEL_BASE_3=$((CLEVEL + 3))
+        $LZBENCH_DIR/zstd -$CLEVEL_BASE_3 $ENTRY >> $LZBENCH_RESULTS
     done
 }
 
-run_lzbench COMPRESS
-run_lzbench DECOMPRESS
+if [ $1 == "ALL" ]
+then
+    run_lzbench COMPRESS
+    run_lzbench DECCOMPRESS
+fi
+
+if [ $1 == "COMPRESS" ]
+then
+    run_lzbench COMPRESS
+fi
+
+if [ $1 == "DECOMPRESS" ]
+then
+    run_lzbench DECOMPRESS
+fi
